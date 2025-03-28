@@ -1,0 +1,44 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Motiv8Me</string>
+
+    <!-- MainActivity (Habit Picker) -->
+    <string name="habit_picker_title">Select Your Habit</string>
+    <string name="next_button_text">Next</string>
+    <string name="habit_quit_smoking">Quit Smoking</string>
+    <string name="habit_stop_procrastinating">Stop Procrastinating</string>
+    <string name="habit_less_screen_time">Less Screen Time</string>
+    <string name="habit_quit_snacking">Quit Snacking</string>
+    <string name="error_no_habit_selected">Please select a habit first.</string> <!-- Added for better UX -->
+
+    <!-- SettingsActivity -->
+    <string name="settings_title">Settings</string>
+    <string name="interval_selection_label">Select Wallpaper Swap Interval:</string>
+    <string name="interval_1_hour">1 Hour</string>
+    <string name="interval_3_hours">3 Hours</string>
+    <string name="interval_6_hours">6 Hours</string>
+    <string name="interval_12_hours">12 Hours</string>
+    <string name="interval_24_hours">24 Hours</string>
+    <string name="start_button_text">Start Motivation</string>
+    <string name="error_no_interval_selected">Please select an interval first.</string> <!-- Added for better UX -->
+
+
+    <!-- ActiveModeActivity -->
+    <string name="active_mode_title">Active Mode</string>
+    <string name="motivation_active_message">Motivation Active!</string>
+    <string name="current_habit_label">Current Habit:</string>
+    <string name="next_swap_time_label">Next Swap Approx:</string>
+    <string name="next_swap_time_calculating">Calculating…</string>
+    <string name="change_settings_button_text">Change Settings</string>
+    <string name="stop_button_text">Stop</string>
+
+    <!-- WallpaperService -->
+    <!-- Although the service doesn't have UI, potential future notifications might need strings -->
+    <!-- For now, no strings are strictly needed by the service itself for UI -->
+
+    <!-- Content Descriptions (for Accessibility) -->
+    <string name="cd_habit_icon">Icon representing the habit</string> <!-- Example if icons were used -->
+    <string name="cd_selected_radio_button">Selected interval</string>
+    <string name="cd_unselected_radio_button">Unselected interval</string>
+
+</resources>
