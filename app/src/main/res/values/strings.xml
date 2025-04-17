@@ -10,7 +10,9 @@
     <string name="onboarding_select_habit_button">Select Habit</string>
     <string name="onboarding_select_frequency_title">2. Set Wallpaper Change Frequency</string>
     <string name="onboarding_select_frequency_button">Select Frequency</string>
-    <string name="onboarding_permissions_title">3. Grant Permissions</string>
+    <string name="onboarding_select_notification_frequency_title">3. Set Notification Frequency</string>
+    <string name="onboarding_select_notification_frequency_button">Select Notification Frequency</string>
+    <string name="onboarding_permissions_title">4. Grant Permissions</string>
     <string name="onboarding_permissions_explanation">We need a couple of permissions to work correctly:</string>
     <string name="onboarding_finish_button">Finish Setup &amp; Start!</string>
 
@@ -22,7 +24,13 @@
     <string name="permission_denied_title">Permission Denied</string>
     <string name="permission_denied_explanation_notifications">Notification permission is needed to show motivational quotes. Please grant it in app settings.</string>
     <string name="permission_denied_explanation_wallpaper">Wallpaper permission is essential for the app to function. Please grant it in app settings.</string>
+    <string name="permission_notifications_denied_title">Notification Permission Needed</string>
+    <string name="permission_notifications_denied_message">To receive motivational quotes, please enable notification permission in app settings.</string>
+    <string name="permission_wallpaper_denied_title">Wallpaper Permission Needed</string>
+    <string name="permission_wallpaper_denied_message">To change your wallpaper, please enable wallpaper permission in app settings.</string>
     <string name="permission_settings_button">Open Settings</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="dismiss">Dismiss</string>
 
     <!-- Settings Screen Strings -->
     <string name="settings_title">Settings</string>
@@ -32,6 +40,7 @@
     <string name="settings_notification_title">Notifications</string>
     <string name="settings_notification_off">Off</string>
     <string name="settings_pro_features_info">Custom habits &amp; images available in Pro version.</string>
+    <string name="settings_permissions_status_title">Permissions Status</string>
 
     <!-- Content Descriptions -->
     <string name="cd_navigate_back">Navigate back</string>
@@ -41,4 +50,8 @@
     <!-- Notification Settings Strings -->
     <string name="notif_settings_title">Notification Settings</string>
     <string name="notif_settings_prompt">How often would you like motivational quotes?</string>
+
+    <!-- Home Screen Strings -->
+    <string name="home_active_title">Motiv8Me is active!</string>
+    <string name="home_active_description">Your wallpaper and motivational notifications will update automatically based on your settings. You can change your preferences at any time in Settings.</string>
 </resources>

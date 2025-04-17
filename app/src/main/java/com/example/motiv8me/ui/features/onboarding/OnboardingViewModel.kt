@@ -12,12 +12,15 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 
 /**
  * Represents the state of the Onboarding screen.
  *
  * @param selectedHabit The currently selected habit identifier (e.g., name or ID). Null if none selected.
  * @param selectedFrequencyMillis The currently selected frequency in milliseconds. Null if none selected.
+ * @param selectedNotificationFrequencyMillis The currently selected notification frequency in milliseconds. Null if none selected.
  * @param availableHabits List of predefined habits the user can choose from.
  * @param availableFrequencies Map of display names (e.g., "1 hour") to frequency values in milliseconds.
  * @param isWallpaperPermissionGranted Current status of the SET_WALLPAPER permission.
@@ -26,6 +29,7 @@ import javax.inject.Inject
 data class OnboardingUiState(
     val selectedHabit: String? = null,
     val selectedFrequencyMillis: Long? = null,
+    val selectedNotificationFrequencyMillis: Long? = null, // NEW: notification frequency
     val availableHabits: List<String> = emptyList(), // Use String for now, replace with Habit model later
     val availableFrequencies: Map<String, Long> = emptyMap(),
     val isWallpaperPermissionGranted: Boolean = false,
@@ -47,6 +51,7 @@ data class OnboardingUiState(
             // Wallpaper permission is assumed granted via manifest for now
             return selectedHabit != null &&
                     selectedFrequencyMillis != null &&
+                    selectedNotificationFrequencyMillis != null && // Require notification frequency
                     isWallpaperPermissionGranted &&
                     notificationOk &&
                     !isLoading // Ensure loading/checks are done
@@ -120,6 +125,14 @@ class OnboardingViewModel @Inject constructor(
     }
 
     /**
+     * Updates the state when the user selects a notification frequency.
+     * @param frequencyMillis The selected notification frequency value in milliseconds.
+     */
+    fun onNotificationFrequencySelected(frequencyMillis: Long) {
+        _uiState.update { it.copy(selectedNotificationFrequencyMillis = frequencyMillis) }
+    }
+
+    /**
      * Updates the notification permission status based on the user's response
      * to the runtime permission request dialog.
      * @param isGranted True if the user granted the permission, false otherwise.
@@ -132,25 +145,34 @@ class OnboardingViewModel @Inject constructor(
     }
 
     /**
-     * Saves the selected habit and frequency settings using the repository.
+     * Saves the selected habit, frequency, and notification frequency settings using the repository.
      * This should be called when the user clicks the "Finish" button.
      * Assumes validation (checking if selections are non-null) happens before calling.
+     * @param onError Callback to provide user feedback in case of an error.
      */
-    fun saveOnboardingSelections() {
+    fun saveOnboardingSelections(onError: (String) -> Unit = {}) {
         val currentState = _uiState.value
         val habit = currentState.selectedHabit
         val frequency = currentState.selectedFrequencyMillis
+        val notificationFrequency = currentState.selectedNotificationFrequencyMillis
 
-        if (habit != null && frequency != null) {
+        if (habit != null && frequency != null && notificationFrequency != null) {
             viewModelScope.launch {
                 try {
-                    // TODO: Implement these methods in SettingsRepository
                     settingsRepository.saveHabitSetting(habit)
                     settingsRepository.saveWallpaperFrequency(frequency)
+                    settingsRepository.saveNotificationFrequency(notificationFrequency)
                     settingsRepository.saveOnboardingComplete(true) // Mark onboarding as done
+                    // Immediately trigger a one-time wallpaper change and notification
+                    WorkManager.getInstance(applicationContext).enqueue(
+                        OneTimeWorkRequestBuilder<com.example.motiv8me.service.WallpaperWorker>().build()
+                    )
+                    WorkManager.getInstance(applicationContext).enqueue(
+                        OneTimeWorkRequestBuilder<com.example.motiv8me.service.NotificationWorker>().build()
+                    )
                 } catch (e: Exception) {
-                    // TODO: Handle potential errors during saving (e.g., show a message)
-                    // Log.e("OnboardingViewModel", "Error saving settings", e)
+                    // Provide user feedback on error
+                    onError("Failed to save onboarding settings. Please try again.")
                 }
             }
         } else {

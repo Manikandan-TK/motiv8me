@@ -37,6 +37,13 @@ class NotificationWorker @AssistedInject constructor(
     private val settingsRepository: SettingsRepository // Injected repository
 ) : CoroutineWorker(appContext, workerParams) {
 
+    // Fallback constructor for WorkManager reflection
+    constructor(appContext: Context, workerParams: WorkerParameters) : this(
+        appContext,
+        workerParams,
+        settingsRepository = throw IllegalStateException("Hilt injection failed for NotificationWorker")
+    )
+
     companion object {
         private const val TAG = "NotificationWorker"
     }

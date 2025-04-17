@@ -24,17 +24,24 @@ import kotlin.random.Random
  */
 @HiltWorker
 class WallpaperWorker @AssistedInject constructor(
-    @Assisted private val appContext: Context,
+    @Assisted context: Context,
     @Assisted workerParams: WorkerParameters,
     private val settingsRepository: SettingsRepository // Injected repository
-) : CoroutineWorker(appContext, workerParams) {
+) : CoroutineWorker(context, workerParams) {
+
+    // Fallback constructor for WorkManager reflection
+    constructor(context: Context, workerParams: WorkerParameters) : this(
+        context,
+        workerParams,
+        settingsRepository = throw IllegalStateException("Hilt injection failed for WallpaperWorker")
+    )
 
     companion object {
         private const val TAG = "WallpaperWorker"
     }
 
     override suspend fun doWork(): Result {
-        Log.d(TAG, "WallpaperWorker started.")
+        Log.d(TAG, "WallpaperWorker started. App context: ${applicationContext.packageName}, User: ${android.os.Process.myUserHandle()}");
 
         return try {
             // Fetch the latest settings when the worker runs
@@ -66,32 +73,48 @@ class WallpaperWorker @AssistedInject constructor(
             val randomImageResId = imageResourceIds.random(Random.Default)
             Log.d(TAG, "Selected image resource ID: $randomImageResId")
 
-            // Set the wallpaper using WallpaperManager on a background thread
-            withContext(Dispatchers.IO) { // Ensure file operations happen off the main thread
+            var wallpaperSet = false
+            var exceptionMessage: String? = null
+            var exceptionStack: String? = null
+
+            withContext(Dispatchers.IO) {
                 try {
-                    val wallpaperManager = WallpaperManager.getInstance(appContext)
-                    // Set wallpaper for the home screen only (FLAG_SYSTEM)
+                    val wallpaperManager = WallpaperManager.getInstance(applicationContext)
                     wallpaperManager.setResource(randomImageResId, WallpaperManager.FLAG_SYSTEM)
                     Log.i(TAG, "Wallpaper successfully set for habit '$selectedHabit'.")
+                    wallpaperSet = true
                 } catch (e: IOException) {
-                    Log.e(TAG, "IOException while setting wallpaper.", e)
-                    throw e // Rethrow to be caught by the outer try-catch -> Result.failure()
+                    Log.e(TAG, "IOException while setting wallpaper: ${e.message}", e)
+                    exceptionMessage = e.message
+                    exceptionStack = Log.getStackTraceString(e)
                 } catch (e: SecurityException) {
-                    Log.e(TAG, "SecurityException: Check SET_WALLPAPER permission.", e)
-                    throw e // Rethrow -> Result.failure()
+                    Log.e(TAG, "SecurityException: Missing SET_WALLPAPER permission: ${e.message}", e)
+                    exceptionMessage = e.message
+                    exceptionStack = Log.getStackTraceString(e)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Unexpected error setting wallpaper.", e)
-                    throw e // Rethrow -> Result.failure()
+                    Log.e(TAG, "Unexpected error setting wallpaper: ${e.message}", e)
+                    exceptionMessage = e.message
+                    exceptionStack = Log.getStackTraceString(e)
                 }
+            }
+
+            if (!wallpaperSet) {
+                Log.e(TAG, "Wallpaper was NOT set. Exception: $exceptionMessage\nStack: $exceptionStack")
+                return Result.failure()
             }
 
             Result.success() // Wallpaper set successfully
 
         } catch (e: Exception) {
-            Log.e(TAG, "WallpaperWorker failed.", e)
-            // Consider retry logic for specific exceptions if appropriate,
-            // but for missing data or permission issues, failure is better.
+            Log.e(TAG, "WallpaperWorker failed: ${e.message}", e)
             Result.failure()
         }
+    }
+
+    private fun hasWallpaperPermission(): Boolean {
+        val pm = applicationContext.packageManager
+        val granted = pm.checkPermission("android.permission.SET_WALLPAPER", applicationContext.packageName) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        Log.d(TAG, "SET_WALLPAPER permission granted: $granted")
+        return granted
     }
 }

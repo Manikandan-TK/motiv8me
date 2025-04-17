@@ -15,6 +15,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.motiv8me.R // For string resources if needed
+import com.example.motiv8me.ui.navigation.ThemeToggleActions
 import com.example.motiv8me.ui.theme.Motiv8MeTheme
 import com.example.motiv8me.util.Constants
 
@@ -46,6 +47,9 @@ fun HabitSelectionScreen(
                             contentDescription = stringResource(R.string.cd_navigate_back) // TODO: Add content description string
                         )
                     }
+                },
+                actions = {
+                    ThemeToggleActions()
                 }
             )
         }

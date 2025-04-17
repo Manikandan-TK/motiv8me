@@ -34,10 +34,12 @@ class ScheduleWallpaperWorkerUseCase @Inject constructor(
 
         if (frequencyMillis == null || frequencyMillis <= 0) {
             // --- Cancel Worker ---
+            Log.i(logTag, "Cancelling unique periodic work: ${Constants.WALLPAPER_WORKER_NAME}")
             workManager.cancelUniqueWork(Constants.WALLPAPER_WORKER_NAME)
             Log.i(logTag, "Cancelled unique periodic work: ${Constants.WALLPAPER_WORKER_NAME}")
         } else {
             // --- Schedule Worker ---
+            Log.i(logTag, "Scheduling unique periodic work '${Constants.WALLPAPER_WORKER_NAME}' with interval $frequencyMillis ms")
             // Ensure minimum interval if needed (WorkManager enforces minimum 15 mins)
             // val actualInterval = maxOf(frequencyMillis, PeriodicWorkRequest.MIN_PERIODIC_INTERVAL_MILLIS)
             // Using the user value directly for now, WorkManager will adjust if needed.

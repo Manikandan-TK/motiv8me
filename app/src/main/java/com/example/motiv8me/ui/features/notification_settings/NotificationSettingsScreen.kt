@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.motiv8me.R
+import com.example.motiv8me.ui.navigation.ThemeToggleActions
 import com.example.motiv8me.ui.theme.Motiv8MeTheme
 import java.util.concurrent.TimeUnit
 
@@ -45,6 +46,9 @@ fun NotificationSettingsScreen(
                             contentDescription = stringResource(R.string.cd_navigate_back)
                         )
                     }
+                },
+                actions = {
+                    ThemeToggleActions()
                 }
             )
         }

@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 // Define the light color scheme using the colors from Color.kt
-private val LightColorScheme = lightColorScheme(
+private val LightColors = lightColorScheme(
     primary = md_theme_light_primary,
     onPrimary = md_theme_light_onPrimary,
     primaryContainer = md_theme_light_primaryContainer,
@@ -31,8 +31,6 @@ private val LightColorScheme = lightColorScheme(
     onTertiaryContainer = md_theme_light_onTertiaryContainer,
     error = md_theme_light_error,
     onError = md_theme_light_onError,
-    errorContainer = md_theme_light_errorContainer,
-    onErrorContainer = md_theme_light_onErrorContainer,
     background = md_theme_light_background,
     onBackground = md_theme_light_onBackground,
     surface = md_theme_light_surface,
@@ -44,12 +42,11 @@ private val LightColorScheme = lightColorScheme(
     scrim = md_theme_light_scrim,
     inverseSurface = md_theme_light_inverseSurface,
     inverseOnSurface = md_theme_light_inverseOnSurface,
-    inversePrimary = md_theme_light_inversePrimary,
-    // surfaceTint = primary (default M3 behavior)
+    inversePrimary = md_theme_light_inversePrimary
 )
 
 // Define the dark color scheme using the colors from Color.kt
-private val DarkColorScheme = darkColorScheme(
+private val DarkColors = darkColorScheme(
     primary = md_theme_dark_primary,
     onPrimary = md_theme_dark_onPrimary,
     primaryContainer = md_theme_dark_primaryContainer,
@@ -64,8 +61,6 @@ private val DarkColorScheme = darkColorScheme(
     onTertiaryContainer = md_theme_dark_onTertiaryContainer,
     error = md_theme_dark_error,
     onError = md_theme_dark_onError,
-    errorContainer = md_theme_dark_errorContainer,
-    onErrorContainer = md_theme_dark_onErrorContainer,
     background = md_theme_dark_background,
     onBackground = md_theme_dark_onBackground,
     surface = md_theme_dark_surface,
@@ -77,8 +72,7 @@ private val DarkColorScheme = darkColorScheme(
     scrim = md_theme_dark_scrim,
     inverseSurface = md_theme_dark_inverseSurface,
     inverseOnSurface = md_theme_dark_inverseOnSurface,
-    inversePrimary = md_theme_dark_inversePrimary,
-    // surfaceTint = primary (default M3 behavior)
+    inversePrimary = md_theme_dark_inversePrimary
 )
 
 /**
@@ -87,27 +81,15 @@ private val DarkColorScheme = darkColorScheme(
  * typography, and shapes defined for the app.
  *
  * @param darkTheme Whether the theme should be forced into dark mode. Defaults to the system setting.
- * @param dynamicColor Whether to use dynamic colors (User Wallpaper based - Android 12+).
- *                     Defaults to false as per knowledge file preference.
  * @param content The composable content to which the theme will be applied.
  */
 @Composable
 fun Motiv8MeTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    // Disabled by default as per knowledge file (optional feature)
-    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     // Determine the base color scheme
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = if (darkTheme) DarkColors else LightColors
 
     // Apply system UI controller effects (e.g., status bar color)
     val view = LocalView.current
@@ -129,8 +111,8 @@ fun Motiv8MeTheme(
     // Apply the chosen color scheme, typography (from Type.kt), and shapes (from Shape.kt)
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography, // Assumes Typography is defined in Type.kt
-        shapes = Shapes,         // Assumes Shapes is defined in Shape.kt
+        typography = Typography, // Modern Montserrat typography
+        shapes = Shapes,         // Playful, rounded shapes
         content = content
     )
 }

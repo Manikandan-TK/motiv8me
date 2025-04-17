@@ -19,6 +19,71 @@ import com.example.motiv8me.ui.features.notification_settings.NotificationSettin
 import com.example.motiv8me.ui.features.onboarding.OnboardingScreen
 import com.example.motiv8me.ui.features.settings.SettingsScreen
 import com.example.motiv8me.ui.features.settings.SettingsViewModel // Import SettingsViewModel
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
+import androidx.compose.runtime.setValue
+
+// Shared theme settings across all screens
+object SharedThemeSettings {
+    var useSystemTheme = mutableStateOf(true)
+    var isDarkTheme = mutableStateOf(false)
+}
+
+@Composable
+fun ThemeToggleActions() {
+    var showThemeMenu by remember { mutableStateOf(false) }
+    val useSystemTheme by SharedThemeSettings.useSystemTheme
+    val isDarkTheme by SharedThemeSettings.isDarkTheme
+    
+    Box {
+        IconButton(onClick = { showThemeMenu = true }) {
+            Icon(
+                imageVector = if (useSystemTheme) Icons.Default.DarkMode 
+                    else if (isDarkTheme) Icons.Default.DarkMode 
+                    else Icons.Default.LightMode,
+                contentDescription = "Theme settings"
+            )
+        }
+        
+        DropdownMenu(
+            expanded = showThemeMenu,
+            onDismissRequest = { showThemeMenu = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("System theme") },
+                onClick = {
+                    SharedThemeSettings.useSystemTheme.value = true
+                    showThemeMenu = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Light mode") },
+                onClick = {
+                    SharedThemeSettings.useSystemTheme.value = false
+                    SharedThemeSettings.isDarkTheme.value = false
+                    showThemeMenu = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Dark mode") },
+                onClick = {
+                    SharedThemeSettings.useSystemTheme.value = false
+                    SharedThemeSettings.isDarkTheme.value = true
+                    showThemeMenu = false
+                }
+            )
+        }
+    }
+}
 
 /**
  * Sets up the navigation graph for the application using Jetpack Compose Navigation.
@@ -59,7 +124,7 @@ fun AppNavigation(
             composable(route = ScreenDestinations.Onboarding.route) {
                 OnboardingScreen(
                     onOnboardingComplete = {
-                        navController.navigate(ScreenDestinations.Settings.route) {
+                        navController.navigate(ScreenDestinations.Home.route) {
                             popUpTo(ScreenDestinations.Onboarding.route) { inclusive = true }
                             launchSingleTop = true
                         }

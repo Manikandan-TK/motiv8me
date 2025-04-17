@@ -63,8 +63,14 @@ class SettingsRepositoryImpl @Inject constructor(
      * Saves the selected habit identifier to DataStore.
      */
     override suspend fun saveHabitSetting(habit: String) {
-        dataStore.edit { preferences ->
-            preferences[Constants.PREF_KEY_SELECTED_HABIT] = habit
+        try {
+            dataStore.edit { preferences ->
+                preferences[Constants.PREF_KEY_SELECTED_HABIT] = habit
+            }
+        } catch (e: Exception) {
+            // Defensive: log and rethrow for ViewModel to handle
+            // Log.e("SettingsRepositoryImpl", "Error saving habit setting", e)
+            throw e
         }
     }
 
@@ -72,8 +78,14 @@ class SettingsRepositoryImpl @Inject constructor(
      * Saves the selected wallpaper frequency (in milliseconds) to DataStore.
      */
     override suspend fun saveWallpaperFrequency(frequencyMillis: Long) {
-        dataStore.edit { preferences ->
-            preferences[Constants.PREF_KEY_WALLPAPER_FREQUENCY] = frequencyMillis
+        try {
+            dataStore.edit { preferences ->
+                preferences[Constants.PREF_KEY_WALLPAPER_FREQUENCY] = frequencyMillis
+            }
+        } catch (e: Exception) {
+            // Defensive: log and rethrow for ViewModel to handle
+            // Log.e("SettingsRepositoryImpl", "Error saving wallpaper frequency", e)
+            throw e
         }
     }
 
@@ -82,8 +94,14 @@ class SettingsRepositoryImpl @Inject constructor(
      * 0L indicates notifications are off.
      */
     override suspend fun saveNotificationFrequency(frequencyMillis: Long) {
-        dataStore.edit { preferences ->
-            preferences[Constants.PREF_KEY_NOTIFICATION_FREQUENCY] = frequencyMillis
+        try {
+            dataStore.edit { preferences ->
+                preferences[Constants.PREF_KEY_NOTIFICATION_FREQUENCY] = frequencyMillis
+            }
+        } catch (e: Exception) {
+            // Defensive: log and rethrow for ViewModel to handle
+            // Log.e("SettingsRepositoryImpl", "Error saving notification frequency", e)
+            throw e
         }
     }
 
@@ -91,8 +109,14 @@ class SettingsRepositoryImpl @Inject constructor(
      * Saves the onboarding completion status to DataStore.
      */
     override suspend fun saveOnboardingComplete(isComplete: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[Constants.PREF_KEY_ONBOARDING_COMPLETE] = isComplete
+        try {
+            dataStore.edit { preferences ->
+                preferences[Constants.PREF_KEY_ONBOARDING_COMPLETE] = isComplete
+            }
+        } catch (e: Exception) {
+            // Defensive: log and rethrow for ViewModel to handle
+            // Log.e("SettingsRepositoryImpl", "Error saving onboarding complete", e)
+            throw e
         }
     }
 }

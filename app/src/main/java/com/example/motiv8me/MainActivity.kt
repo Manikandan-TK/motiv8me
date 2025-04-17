@@ -4,12 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.motiv8me.ui.navigation.AppNavigation // Will be created later
+import com.example.motiv8me.ui.navigation.SharedThemeSettings
 import com.example.motiv8me.ui.theme.Motiv8MeTheme // Will be created later
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -23,25 +26,22 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint // Enable Hilt for dependency injection in this Activity
 class MainActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState) // Call the superclass implementation
+        super.onCreate(savedInstanceState)
 
-        // Set the content of the activity using Jetpack Compose
         setContent {
-            // Apply the custom Material 3 theme defined in ui.theme.Motiv8MeTheme
-            // This wrapper provides consistent styling (colors, typography, shapes)
-            // across the entire application and handles light/dark theme switching.
-            Motiv8MeTheme {
-                // A root Surface container using the 'background' color from the theme.
-                // Provides a standard background and elevation handling for the app content.
+            val useSystemTheme by SharedThemeSettings.useSystemTheme
+            val isDarkTheme = if (useSystemTheme) {
+                isSystemInDarkTheme()
+            } else {
+                SharedThemeSettings.isDarkTheme.value
+            }
+            
+            Motiv8MeTheme(darkTheme = isDarkTheme) {
                 Surface(
-                    modifier = Modifier.fillMaxSize(), // Ensure the Surface fills the entire screen
-                    color = MaterialTheme.colorScheme.background // Use the theme's background color
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
                 ) {
-                    // Call the main navigation composable which sets up the NavHost
-                    // and defines the different screens/destinations of the app.
-                    // All screen content will be rendered within this navigation component.
                     AppNavigation()
                 }
             }
