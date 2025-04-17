@@ -33,7 +33,7 @@ JDK 11 or higher
 
 Setup
 
-Clone the repository:git clone https://github.com/yourusername/motiv8me.git
+Clone the repository:git clone https://github.com/Manikandan-TK/motiv8me.git
 
 
 Open the project in Android Studio.
