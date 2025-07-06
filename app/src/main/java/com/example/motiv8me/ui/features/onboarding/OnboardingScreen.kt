@@ -1,19 +1,27 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.example.motiv8me.ui.features.onboarding
 
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -22,241 +30,250 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.motiv8me.R
+import com.example.motiv8me.util.Constants
 import com.example.motiv8me.ui.components.FrequencySelector
 import com.example.motiv8me.ui.components.HabitSelector
-import com.example.motiv8me.ui.navigation.ThemeToggleActions
 import com.example.motiv8me.ui.theme.Motiv8MeTheme
-import com.example.motiv8me.util.PermissionUtils
-import com.example.motiv8me.util.Constants
+import com.google.accompanist.pager.HorizontalPagerIndicator
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingScreen(
     onOnboardingComplete: () -> Unit,
     viewModel: OnboardingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            viewModel.onNotificationPermissionResult(isGranted)
+    val pagerState = rememberPagerState(pageCount = { uiState.totalPages })
+    val coroutineScope = rememberCoroutineScope()
+
+    // Sync pager state from ViewModel
+    LaunchedEffect(uiState.currentPage) {
+        if (pagerState.currentPage != uiState.currentPage) {
+            pagerState.animateScrollToPage(uiState.currentPage)
         }
-    )
-    var showNotificationPermissionRationale by remember { mutableStateOf(false) }
-    var showWallpaperPermissionRationale by remember { mutableStateOf(false) }
+    }
+
+    // Sync ViewModel from pager state
+    LaunchedEffect(pagerState.currentPage) {
+        if (uiState.currentPage != pagerState.currentPage) {
+            viewModel.setCurrentPage(pagerState.currentPage)
+        }
+    }
+
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(id = R.string.onboarding_title)) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary),
-                actions = {
-                    ThemeToggleActions()
+        bottomBar = {
+            OnboardingBottomBar(
+                uiState = uiState,
+                onBack = viewModel::onBackClicked,
+                onNext = viewModel::onNextClicked,
+                onFinish = {
+                    viewModel.saveOnboardingSelections()
+                    onOnboardingComplete()
                 }
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(paddingValues)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            if (uiState.isLoading) {
-                Spacer(Modifier.height(32.dp))
-                CircularProgressIndicator()
-                Spacer(Modifier.weight(1f))
-            } else {
-                // --- Welcome & Illustration ---
-                Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                    contentDescription = null,
-                    modifier = Modifier.size(96.dp)
-                )
-                Text(
-                    text = stringResource(id = R.string.onboarding_welcome),
-                    style = MaterialTheme.typography.headlineSmall.copy(color = MaterialTheme.colorScheme.secondary),
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = stringResource(id = R.string.onboarding_explanation),
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
-                )
-                // --- Step 1: Habit Selection ---
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(
-                            text = stringResource(id = R.string.onboarding_select_habit_title),
-                            style = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.secondary)
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        HabitSelector(
-                            availableHabits = uiState.availableHabits,
-                            selectedHabit = uiState.selectedHabit,
-                            onHabitSelected = viewModel::onHabitSelected,
-                            placeholder = stringResource(id = R.string.onboarding_select_habit_button)
-                        )
-                    }
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f),
+                userScrollEnabled = true
+            ) { page ->
+                when (page) {
+                    0 -> WelcomeStep()
+                    1 -> HabitStep(uiState, viewModel::onHabitSelected)
+                    2 -> WallpaperFrequencyStep(uiState, viewModel::onWallpaperFrequencySelected)
+                    3 -> NotificationFrequencyStep(uiState, viewModel::onNotificationFrequencySelected)
+                    4 -> PermissionsStep(uiState, viewModel)
                 }
-                // --- Step 2: Wallpaper Frequency Selection ---
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f))
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(
-                            text = stringResource(id = R.string.onboarding_select_frequency_title),
-                            style = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.secondary)
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        FrequencySelector(
-                            availableFrequencies = uiState.availableFrequencies,
-                            selectedFrequencyMillis = uiState.selectedFrequencyMillis,
-                            onFrequencySelected = viewModel::onFrequencySelected,
-                            placeholder = stringResource(id = R.string.onboarding_select_frequency_button)
-                        )
-                    }
-                }
-                // --- Step 3: Notification Frequency Selection ---
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f))
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(
-                            text = stringResource(id = R.string.onboarding_select_notification_frequency_title),
-                            style = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.tertiary)
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        FrequencySelector(
-                            availableFrequencies = Constants.NOTIFICATION_FREQUENCIES,
-                            selectedFrequencyMillis = uiState.selectedNotificationFrequencyMillis,
-                            onFrequencySelected = viewModel::onNotificationFrequencySelected,
-                            placeholder = stringResource(id = R.string.onboarding_select_notification_frequency_button)
-                        )
-                    }
-                }
-                // --- Step 4: Permissions ---
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-                ) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = stringResource(id = R.string.onboarding_permissions_title),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = stringResource(id = R.string.onboarding_permissions_explanation),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        PermissionStatus(
-                            permissionName = stringResource(id = R.string.permission_wallpaper),
-                            isGranted = uiState.isWallpaperPermissionGranted
-                        ) {
-                            showWallpaperPermissionRationale = true
-                        }
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            PermissionStatus(
-                                permissionName = stringResource(id = R.string.permission_notifications),
-                                isGranted = uiState.isNotificationPermissionGranted
-                            ) {
-                                if (!uiState.isNotificationPermissionGranted) {
-                                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                }
-                            }
-                        }
-                    }
-                }
-                // --- Permission Error Dialogs ---
-                if (showNotificationPermissionRationale) {
-                    AlertDialog(
-                        onDismissRequest = { showNotificationPermissionRationale = false },
-                        title = { Text(stringResource(id = R.string.permission_notifications_denied_title)) },
-                        text = { Text(stringResource(id = R.string.permission_notifications_denied_message)) },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                showNotificationPermissionRationale = false
-                                PermissionUtils.openAppSettings(context)
-                            }) { Text(stringResource(id = R.string.open_settings)) }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showNotificationPermissionRationale = false }) {
-                                Text(stringResource(id = R.string.dismiss))
-                            }
-                        }
-                    )
-                }
-                if (showWallpaperPermissionRationale) {
-                    AlertDialog(
-                        onDismissRequest = { showWallpaperPermissionRationale = false },
-                        title = { Text(stringResource(id = R.string.permission_wallpaper_denied_title)) },
-                        text = { Text(stringResource(id = R.string.permission_wallpaper_denied_message)) },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                showWallpaperPermissionRationale = false
-                                PermissionUtils.openAppSettings(context)
-                            }) { Text(stringResource(id = R.string.open_settings)) }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showWallpaperPermissionRationale = false }) {
-                                Text(stringResource(id = R.string.dismiss))
-                            }
-                        }
-                    )
-                }
-                Spacer(Modifier.weight(1f))
-                Button(
-                    onClick = {
-                        viewModel.saveOnboardingSelections()
-                        onOnboardingComplete()
-                    },
-                    enabled = uiState.canCompleteOnboarding,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(id = R.string.onboarding_finish_button))
-                }
+            }
+            HorizontalPagerIndicator(
+                pagerState = pagerState,
+                pageCount = uiState.totalPages,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun OnboardingBottomBar(
+    uiState: OnboardingUiState,
+    onBack: () -> Unit,
+    onNext: () -> Unit,
+    onFinish: () -> Unit
+) {
+    BottomAppBar(
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentPadding = PaddingValues(horizontal = 16.dp)
+    ) {
+        if (uiState.currentPage > 0) {
+            TextButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.onboarding_back))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(id = R.string.onboarding_back))
+            }
+        }
+        Spacer(Modifier.weight(1f))
+        if (uiState.currentPage < uiState.totalPages - 1) {
+            val isNextEnabled = when (uiState.currentPage) {
+                1 -> uiState.selectedHabit != null
+                2 -> uiState.selectedWallpaperFrequency != null
+                3 -> uiState.selectedNotificationFrequencyMillis != null
+                else -> true
+            }
+            Button(onClick = onNext, enabled = isNextEnabled) {
+                Text(stringResource(id = R.string.onboarding_next))
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = stringResource(id = R.string.onboarding_next))
+            }
+        } else {
+            Button(onClick = onFinish, enabled = uiState.canCompleteOnboarding) {
+                Text(stringResource(id = R.string.onboarding_finish))
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.Default.Done, contentDescription = stringResource(id = R.string.onboarding_finish))
             }
         }
     }
 }
 
-/**
- * Simple composable to display the status of a permission.
- */
 @Composable
-private fun PermissionStatus(
-    permissionName: String,
-    isGranted: Boolean,
-    onRequestPermission: () -> Unit
-) {
+fun StepCard(title: String, content: @Composable () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp, vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
+        content()
+    }
+}
+
+@Composable
+fun WelcomeStep() {
+    StepCard(title = stringResource(id = R.string.onboarding_step_welcome_title)) {
+        Image(
+            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+            contentDescription = null,
+            modifier = Modifier.size(128.dp)
+        )
+        Spacer(Modifier.height(24.dp))
+        Text(
+            text = stringResource(id = R.string.onboarding_explanation),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun HabitStep(uiState: OnboardingUiState, onHabitSelected: (String) -> Unit) {
+    StepCard(title = stringResource(id = R.string.onboarding_step_habit_title)) {
+        HabitSelector(
+            availableHabits = uiState.availableHabits,
+            selectedHabit = uiState.selectedHabit,
+            onHabitSelected = onHabitSelected,
+            placeholder = stringResource(id = R.string.onboarding_select_habit_button)
+        )
+    }
+}
+
+@Composable
+fun WallpaperFrequencyStep(uiState: OnboardingUiState, onFrequencySelected: (Long) -> Unit) {
+    StepCard(title = stringResource(id = R.string.onboarding_step_wallpaper_frequency_title)) {
+        FrequencySelector(
+            availableFrequencies = uiState.availableFrequencies.toMap(),
+            selectedFrequencyMillis = uiState.selectedWallpaperFrequency,
+            onFrequencySelected = onFrequencySelected,
+            placeholder = stringResource(id = R.string.onboarding_select_frequency_button)
+        )
+    }
+}
+
+@Composable
+fun NotificationFrequencyStep(uiState: OnboardingUiState, onFrequencySelected: (Long) -> Unit) {
+    StepCard(title = stringResource(id = R.string.onboarding_step_notification_frequency_title)) {
+        FrequencySelector(
+            availableFrequencies = Constants.NOTIFICATION_FREQUENCY_OPTIONS.associateBy { it.first }.mapValues { it.value.second },
+            selectedFrequencyMillis = uiState.selectedNotificationFrequencyMillis,
+            onFrequencySelected = onFrequencySelected,
+            placeholder = stringResource(id = R.string.onboarding_select_notification_frequency_button)
+        )
+    }
+}
+
+@Composable
+fun PermissionsStep(uiState: OnboardingUiState, viewModel: OnboardingViewModel) {
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = viewModel::onNotificationPermissionResult
+    )
+
+    StepCard(title = stringResource(id = R.string.onboarding_step_permissions_title)) {
+        Text(
+            text = stringResource(id = R.string.onboarding_step_permissions_explanation),
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+
+        PermissionRow(
+            icon = Icons.Default.Wallpaper,
+            name = stringResource(id = R.string.permission_wallpaper),
+            isGranted = uiState.isWallpaperPermissionGranted,
+            buttonText = stringResource(id = R.string.onboarding_set_wallpaper_button)
+        ) {
+            viewModel.setInitialWallpaper()
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            PermissionRow(
+                icon = Icons.Default.Notifications,
+                name = stringResource(id = R.string.permission_notifications),
+                isGranted = uiState.isNotificationPermissionGranted,
+                buttonText = stringResource(id = R.string.permission_grant_button)
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+}
+
+@Composable
+fun PermissionRow(icon: ImageVector, name: String, isGranted: Boolean, buttonText: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(permissionName, style = MaterialTheme.typography.bodyMedium)
+        Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
+        Text(name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp))
+        Spacer(Modifier.weight(1f))
         if (isGranted) {
             Text(
                 stringResource(id = R.string.permission_granted),
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodyLarge
             )
         } else {
-            Button(onClick = onRequestPermission) {
-                Text(stringResource(id = R.string.permission_grant_button))
+            Button(onClick = onClick) {
+                Text(buttonText)
             }
         }
     }
 }
 
-// --- Preview ---
 @Preview(showBackground = true)
 @Composable
 private fun OnboardingScreenPreview() {

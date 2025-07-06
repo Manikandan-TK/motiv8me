@@ -16,11 +16,24 @@
     <string name="onboarding_permissions_explanation">We need a couple of permissions to work correctly:</string>
     <string name="onboarding_finish_button">Finish Setup &amp; Start!</string>
 
+    <!-- New Onboarding Strings -->
+    <string name="onboarding_step_welcome_title">Welcome to Motiv8Me</string>
+    <string name="onboarding_step_habit_title">What habit are you focusing on?</string>
+    <string name="onboarding_step_wallpaper_frequency_title">How often to change wallpaper?</string>
+    <string name="onboarding_step_notification_frequency_title">How often for notifications?</string>
+    <string name="onboarding_step_permissions_title">Final Permissions</string>
+    <string name="onboarding_step_permissions_explanation">To change your wallpaper and send reminders, we need these permissions.</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_finish">Finish</string>
+
     <!-- Permission Related Strings -->
     <string name="permission_wallpaper">Set Wallpaper</string>
     <string name="permission_notifications">Show Notifications</string>
     <string name="permission_granted">Granted</string>
+    <string name="permission_denied">Denied</string>
     <string name="permission_grant_button">Grant</string>
+    <string name="onboarding_set_wallpaper_button">Set Wallpaper</string>
     <string name="permission_denied_title">Permission Denied</string>
     <string name="permission_denied_explanation_notifications">Notification permission is needed to show motivational quotes. Please grant it in app settings.</string>
     <string name="permission_denied_explanation_wallpaper">Wallpaper permission is essential for the app to function. Please grant it in app settings.</string>
@@ -32,11 +45,24 @@
     <string name="open_settings">Open Settings</string>
     <string name="dismiss">Dismiss</string>
 
-    <!-- Settings Screen Strings -->
+    <!-- Redesigned Settings Screen Strings -->
     <string name="settings_title">Settings</string>
+    <string name="settings_section_personalization">Personalization</string>
+    <string name="settings_label_focus_habit">Focus Habit</string>
+    <string name="settings_label_wallpaper_frequency">Wallpaper Frequency</string>
+    <string name="settings_label_notification_frequency">Notification Frequency</string>
+    <string name="settings_status_disabled">Disabled</string>
+    <string name="settings_section_permissions">App Permissions</string>
+    <string name="settings_label_wallpaper_permission">Wallpaper</string>
+    <string name="settings_label_notification_permission">Notifications</string>
+    <string name="settings_action_manage_permission">Manage</string>
+    <string name="settings_section_upgrade">Upgrade</string>
+    <string name="settings_label_pro_features">Custom Habits &amp; Images</string>
+    <string name="settings_value_pro_features">Available in Pro</string>
+
+    <!-- Old Settings Strings (to be removed or updated) -->
     <string name="settings_habit_title">Focus Habit</string>
     <string name="settings_habit_not_set">Not selected</string>
-    <string name="settings_wallpaper_frequency_title">Wallpaper Frequency</string>
     <string name="settings_notification_title">Notifications</string>
     <string name="settings_notification_off">Off</string>
     <string name="settings_pro_features_info">Custom habits &amp; images available in Pro version.</string>
@@ -45,11 +71,11 @@
     <!-- Content Descriptions -->
     <string name="cd_navigate_back">Navigate back</string>
 
-    <!-- Add other general app strings below -->
-
     <!-- Notification Settings Strings -->
     <string name="notif_settings_title">Notification Settings</string>
     <string name="notif_settings_prompt">How often would you like motivational quotes?</string>
+    <string name="settings_label_enable_notifications">Enable Motivational Notifications</string>
+    <string name="notif_settings_frequency_label">Frequency</string>
 
     <!-- Home Screen Strings -->
     <string name="home_active_title">Motiv8Me is active!</string>

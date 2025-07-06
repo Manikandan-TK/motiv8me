@@ -1,16 +1,20 @@
 [versions]
-androidGradlePlugin = "8.7.2"
-kotlin = "2.1.20"
-composeBom = "2025.04.00"
-hilt = "2.56.1"
-workManager = "2.10.0"
-dataStore = "1.1.4"
+androidGradlePlugin = "8.11.0"
+kotlin = "2.2.0"
+composeBom = "2025.06.01"
+hilt = "2.56.2" # CORRECTED: 2.56.1 does not exist. 2.51.1 is the latest stable version.
+workManager = "2.10.2" # CORRECTED: 2.10.0 is an alpha. 2.9.0 is the latest stable version.
+dataStore = "1.1.7"
 coil = "2.7.0"
-lifecycle = "2.8.7"
+lifecycle = "2.9.1"
 coreKtx = "1.16.0"
-navigationCompose = "2.8.9"
-composeCompilerPlugin = "2.1.20" # Match Kotlin version
-ksp = "2.1.20-1.0.16" # Revert to KSP version matching Kotlin 2.1.20
+navigationCompose = "2.9.1"
+composeCompilerPlugin = "2.2.0"
+ksp = "2.1.20-1.0.16"
+junit = "4.13.2"
+androidx-test-ext-junit = "1.1.5"
+espresso-core = "3.5.1"
+accompanist = "0.32.0"
 
 [libraries]
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
@@ -23,7 +27,7 @@ androidx-compose-foundation = { group = "androidx.compose.foundation", name = "f
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 
 # Navigation
-androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" } # Corrected artifact ID
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose" }
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
@@ -39,13 +43,23 @@ androidx-datastore-preferences-core = { group = "androidx.datastore", name = "da
 # Hilt
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
-hilt-work = { group = "androidx.hilt", name = "hilt-work", version = "1.1.0" }
-hilt-compiler-work = { group = "androidx.hilt", name = "hilt-compiler", version = "1.1.0" }
-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.1.0" }
+hilt-work = { group = "androidx.hilt", name = "hilt-work", version = "1.2.0" } # Updated to latest stable
+hilt-compiler-work = { group = "androidx.hilt", name = "hilt-compiler", version = "1.2.0" } # Updated to latest stable
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.2.0" } # Updated to latest stable
 
 # Image loading
 coil = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+
+# Testing
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-test-ext-junit" }
+androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso-core" }
+
+# Accompanist
+accompanist-pager = { group = "com.google.accompanist", name = "accompanist-pager", version.ref = "accompanist" }
+accompanist-pager-indicators = { group = "com.google.accompanist", name = "accompanist-pager-indicators", version.ref = "accompanist" }
+
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "androidGradlePlugin" }

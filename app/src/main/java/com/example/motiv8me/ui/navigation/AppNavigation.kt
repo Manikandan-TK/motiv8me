@@ -144,17 +144,17 @@ fun AppNavigation(
             }
 
             // Settings Screen
-            composable(route = ScreenDestinations.Settings.route) { backStackEntry ->
-                // Obtain SettingsViewModel scoped to this destination
-                val settingsViewModel: SettingsViewModel = hiltViewModel(backStackEntry)
-
+            composable(route = ScreenDestinations.Settings.route) {
                 SettingsScreen(
-                    viewModel = settingsViewModel,
+                    onNavigateBack = { navController.popBackStack() },
                     onNavigateToHabitSelection = {
                         navController.navigate(ScreenDestinations.HabitSelection.route)
                     },
                     onNavigateToNotificationSettings = {
                         navController.navigate(ScreenDestinations.NotificationSettings.route)
+                    },
+                    onNavigateToPro = {
+                        // TODO: Replace with actual navigation to a pro/upgrade screen
                     }
                 )
             }

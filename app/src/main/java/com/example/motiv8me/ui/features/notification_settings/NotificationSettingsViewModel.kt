@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.motiv8me.domain.repository.SettingsRepository
 import com.example.motiv8me.domain.usecase.ScheduleNotificationWorkerUseCase
-import com.example.motiv8me.util.Constants
+import com.example.motiv8me.util.Constants.NOTIFICATION_FREQUENCY_OFF
+import com.example.motiv8me.util.Constants.NOTIFICATION_FREQUENCY_OPTIONS
+import com.example.motiv8me.util.Constants.SHARED_APP_FREQUENCIES
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -15,13 +17,13 @@ import javax.inject.Inject
  */
 data class NotificationSettingsUiState(
     val isLoading: Boolean = true,
-    val currentFrequencyMillis: Long? = null, // Null initially or if not set
-    val availableFrequencies: Map<String, Long> = Constants.NOTIFICATION_FREQUENCIES
+    val notificationsEnabled: Boolean = true,
+    val selectedFrequencyValue: Long? = null,
+    val availableFrequencies: List<Pair<String, Long>> = SHARED_APP_FREQUENCIES
 )
 
 /**
  * ViewModel for the Notification Settings screen.
- * Handles fetching the current notification frequency and updating it.
  */
 @HiltViewModel
 class NotificationSettingsViewModel @Inject constructor(
@@ -33,47 +35,48 @@ class NotificationSettingsViewModel @Inject constructor(
     val uiState: StateFlow<NotificationSettingsUiState> = _uiState.asStateFlow()
 
     init {
-        loadCurrentFrequency()
+        loadCurrentSettings()
     }
 
-    /**
-     * Loads the current notification frequency setting from the repository.
-     */
-    private fun loadCurrentFrequency() {
+    private fun loadCurrentSettings() {
         viewModelScope.launch {
             settingsRepository.getSettings()
-                .map { it.notificationFrequencyMillis } // Only need this specific setting
-                .distinctUntilChanged() // Only emit when the value actually changes
                 .onStart { _uiState.update { it.copy(isLoading = true) } }
-                .catch { e ->
-                    // Handle error loading settings
-                    _uiState.update { it.copy(isLoading = false) }
-                    // Log.e("NotifSettingsVM", "Error loading notification frequency", e)
-                }
-                .collect { frequency ->
+                .catch { e -> _uiState.update { it.copy(isLoading = false) } }
+                .collect { settings ->
+                    val frequency = settings.notificationFrequencyMillis
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            // Ensure 0L is treated as a valid selection ("Off")
-                            currentFrequencyMillis = frequency ?: Constants.NOTIFICATION_FREQUENCIES["Off"]
+                            notificationsEnabled = frequency != NOTIFICATION_FREQUENCY_OFF,
+                            selectedFrequencyValue = frequency
                         )
                     }
                 }
         }
     }
 
-    /**
-     * Called when the user selects a new notification frequency.
-     * Saves the new frequency and reschedules the NotificationWorker.
-     */
     fun onFrequencySelected(newFrequencyMillis: Long) {
-        // Update UI state immediately for responsiveness (optional, flow should update anyway)
-        // _uiState.update { it.copy(currentFrequencyMillis = newFrequencyMillis) }
-
+        _uiState.update { it.copy(selectedFrequencyValue = newFrequencyMillis, notificationsEnabled = true) }
         viewModelScope.launch {
             settingsRepository.saveNotificationFrequency(newFrequencyMillis)
-            scheduleNotificationWorkerUseCase(newFrequencyMillis) // Reschedule worker
-            // The flow collection in init should automatically update the UI state
+            scheduleNotificationWorkerUseCase()
+        }
+    }
+
+    fun onToggleNotifications(enabled: Boolean) {
+        val newFrequency = if (enabled) {
+            // Restore the last known frequency or default to the first option in the list
+            _uiState.value.selectedFrequencyValue.takeIf { it != NOTIFICATION_FREQUENCY_OFF } 
+                ?: NOTIFICATION_FREQUENCY_OPTIONS.first().second
+        } else {
+            NOTIFICATION_FREQUENCY_OFF
+        }
+        _uiState.update { it.copy(notificationsEnabled = enabled, selectedFrequencyValue = newFrequency) }
+
+        viewModelScope.launch {
+            settingsRepository.saveNotificationFrequency(newFrequency)
+            scheduleNotificationWorkerUseCase()
         }
     }
 }

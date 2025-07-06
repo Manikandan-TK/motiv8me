@@ -98,7 +98,6 @@ fun Motiv8MeTheme(
             val window = (view.context as? Activity)?.window
             window?.let {
                 // Set status bar color and icon appearance
-                it.statusBarColor = colorScheme.background.toArgb() // Match background
                 WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = !darkTheme
 
                 // Optional: Set navigation bar color and icon appearance

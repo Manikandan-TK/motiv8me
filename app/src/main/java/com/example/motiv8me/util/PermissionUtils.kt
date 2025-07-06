@@ -15,27 +15,24 @@ import androidx.core.content.ContextCompat
 object PermissionUtils {
 
     /**
-     * Checks if the app has permission to set the device wallpaper.
-     *
-     * Note: `SET_WALLPAPER` is typically a signature/install-time permission.
-     * While `checkSelfPermission` might return GRANTED if declared in the Manifest,
-     * it's not a standard runtime permission. A more definitive check might involve
-     * attempting to use the WallpaperManager, but this simple check is often sufficient.
-     * Assume granted if declared in Manifest for most practical purposes.
+     * Checks if the SET_WALLPAPER permission is declared in the Manifest.
+     * This is not a true runtime permission check, but confirms the app *can* set it.
+     * The user grants the permission by completing the Intent.ACTION_SET_WALLPAPER flow.
      *
      * @param context The application context.
-     * @return `true` if the permission appears to be granted, `false` otherwise.
+     * @return `true` if the permission is declared in the manifest, `false` otherwise.
      */
     fun hasWallpaperPermission(context: Context): Boolean {
-        // For SET_WALLPAPER, simply checking the manifest declaration is often the
-        // most practical approach, as runtime checks can be unreliable or unnecessary.
-        // However, using checkSelfPermission provides some level of check.
-        return ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.SET_WALLPAPER
-        ) == PackageManager.PERMISSION_GRANTED
-        // Alternatively, could just return true if the permission is in the Manifest,
-        // assuming install-time grant.
+        // This is an install-time permission. The most useful check is to see if it's
+        // in the manifest, confirming the app has the *capability*. The user "grants"
+        // it by successfully setting a wallpaper via the system intent.
+        return try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS)
+            val requestedPermissions = packageInfo.requestedPermissions
+            requestedPermissions?.contains(Manifest.permission.SET_WALLPAPER) == true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
     }
 
     /**
@@ -88,10 +85,4 @@ object PermissionUtils {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
     }
-
-    // Add checks for other permissions like SCHEDULE_EXACT_ALARM or
-    // REQUEST_IGNORE_BATTERY_OPTIMIZATIONS if needed later.
-    // fun hasExactAlarmPermission(context: Context): Boolean { ... }
-    // fun isIgnoringBatteryOptimizations(context: Context): Boolean { ... }
-
 }

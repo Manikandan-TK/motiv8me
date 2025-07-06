@@ -14,6 +14,10 @@ import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private object PreferencesKeys {
+    val THEME_PREFERENCE = Constants.PREF_KEY_THEME_PREFERENCE
+}
+
 /**
  * Implementation of the SettingsRepository using Jetpack Preferences DataStore.
  * Handles reading and writing application settings.
@@ -58,6 +62,11 @@ class SettingsRepositoryImpl @Inject constructor(
                 )
             }
     }
+
+    override val themePreference: Flow<String> = dataStore.data
+        .map { preferences ->
+            preferences[Constants.PREF_KEY_THEME_PREFERENCE] ?: "System"
+        }
 
     /**
      * Saves the selected habit identifier to DataStore.
@@ -116,6 +125,18 @@ class SettingsRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             // Defensive: log and rethrow for ViewModel to handle
             // Log.e("SettingsRepositoryImpl", "Error saving onboarding complete", e)
+            throw e
+        }
+    }
+
+    override suspend fun saveThemePreference(theme: String) {
+        try {
+            dataStore.edit { preferences ->
+                preferences[Constants.PREF_KEY_THEME_PREFERENCE] = theme
+            }
+        } catch (e: Exception) {
+            // Defensive: log and rethrow for ViewModel to handle
+            // Log.e("SettingsRepositoryImpl", "Error saving theme preference", e)
             throw e
         }
     }

@@ -1,12 +1,15 @@
 package com.example.motiv8me.ui.features.onboarding
 
+import android.app.WallpaperManager
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.os.Build
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.motiv8me.domain.repository.SettingsRepository // Assuming this interface exists
-import com.example.motiv8me.util.Constants // Assuming Constants.kt exists with habits/frequencies
-import com.example.motiv8me.util.PermissionUtils
+import com.example.motiv8me.R
+import com.example.motiv8me.domain.repository.SettingsRepository
+import com.example.motiv8me.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -14,61 +17,37 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.example.motiv8me.service.NotificationWorker
+import com.example.motiv8me.service.WallpaperWorker
 
-/**
- * Represents the state of the Onboarding screen.
- *
- * @param selectedHabit The currently selected habit identifier (e.g., name or ID). Null if none selected.
- * @param selectedFrequencyMillis The currently selected frequency in milliseconds. Null if none selected.
- * @param selectedNotificationFrequencyMillis The currently selected notification frequency in milliseconds. Null if none selected.
- * @param availableHabits List of predefined habits the user can choose from.
- * @param availableFrequencies Map of display names (e.g., "1 hour") to frequency values in milliseconds.
- * @param isWallpaperPermissionGranted Current status of the SET_WALLPAPER permission.
- * @param isNotificationPermissionGranted Current status of the POST_NOTIFICATIONS permission.
- */
 data class OnboardingUiState(
+    // Page state
+    val currentPage: Int = 0,
+    val totalPages: Int = 5, // Welcome, Habit, Wallpaper Freq, Notif Freq, Permissions
+
+    // Selections
     val selectedHabit: String? = null,
-    val selectedFrequencyMillis: Long? = null,
-    val selectedNotificationFrequencyMillis: Long? = null, // NEW: notification frequency
-    val availableHabits: List<String> = emptyList(), // Use String for now, replace with Habit model later
-    val availableFrequencies: Map<String, Long> = emptyMap(),
+    val selectedWallpaperFrequency: Long? = null,
+    val selectedNotificationFrequencyMillis: Long? = null,
+    val availableHabits: List<String> = emptyList(),
+    val availableFrequencies: List<Pair<String, Long>> = emptyList(),
+
+    // Permissions
     val isWallpaperPermissionGranted: Boolean = false,
-    val isNotificationPermissionGranted: Boolean = true, // Default true for pre-Tiramisu
-    val isLoading: Boolean = true // Indicate initial loading/permission checks
+    val isNotificationPermissionGranted: Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) false else true,
+    val isLoading: Boolean = false
 ) {
-    /**
-     * Determines if all necessary selections have been made and permissions granted
-     * to allow the user to complete onboarding.
-     */
     val canCompleteOnboarding: Boolean
-        get() {
-            // Check if notification permission is required and granted for the current OS version
-            val notificationOk = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                isNotificationPermissionGranted
-            } else {
-                true // Not needed below Tiramisu
-            }
-            // Wallpaper permission is assumed granted via manifest for now
-            return selectedHabit != null &&
-                    selectedFrequencyMillis != null &&
-                    selectedNotificationFrequencyMillis != null && // Require notification frequency
-                    isWallpaperPermissionGranted &&
-                    notificationOk &&
-                    !isLoading // Ensure loading/checks are done
-        }
+        get() = selectedHabit != null &&
+                selectedWallpaperFrequency != null &&
+                selectedNotificationFrequencyMillis != null &&
+                isWallpaperPermissionGranted &&
+                (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) isNotificationPermissionGranted else true)
 }
 
-/**
- * ViewModel for the Onboarding screen.
- * Manages the state (habit/frequency selection, permissions) and handles saving
- * the selections upon completion.
- *
- * @param settingsRepository Repository for saving user preferences.
- * @param applicationContext Context used for permission checks.
- */
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
-    private val settingsRepository: SettingsRepository, // TODO: Create this repository interface/impl
+    private val settingsRepository: SettingsRepository,
     @ApplicationContext private val applicationContext: Context
 ) : ViewModel() {
 
@@ -77,107 +56,113 @@ class OnboardingViewModel @Inject constructor(
 
     init {
         loadInitialData()
-        checkInitialPermissions()
     }
 
-    /**
-     * Loads predefined habits and frequencies from Constants.
-     */
     private fun loadInitialData() {
         _uiState.update {
             it.copy(
-                availableHabits = Constants.PREDEFINED_HABITS, // TODO: Define in Constants.kt
-                availableFrequencies = Constants.WALLPAPER_FREQUENCIES // TODO: Define in Constants.kt
+                availableHabits = Constants.PREDEFINED_HABITS,
+                availableFrequencies = Constants.SHARED_APP_FREQUENCIES
             )
         }
     }
 
-    /**
-     * Checks the initial status of required permissions.
-     */
-    fun checkInitialPermissions() {
-        val wallpaperGranted = PermissionUtils.hasWallpaperPermission(applicationContext)
-        val notificationGranted = PermissionUtils.hasNotificationPermission(applicationContext)
-
-        _uiState.update {
-            it.copy(
-                isWallpaperPermissionGranted = wallpaperGranted,
-                isNotificationPermissionGranted = notificationGranted,
-                isLoading = false // Mark initial checks as complete
-            )
-        }
-    }
-
-    /**
-     * Updates the state when the user selects a habit.
-     * @param habit The identifier (e.g., name) of the selected habit.
-     */
     fun onHabitSelected(habit: String) {
         _uiState.update { it.copy(selectedHabit = habit) }
     }
 
-    /**
-     * Updates the state when the user selects a frequency.
-     * @param frequencyMillis The selected frequency value in milliseconds.
-     */
-    fun onFrequencySelected(frequencyMillis: Long) {
-        _uiState.update { it.copy(selectedFrequencyMillis = frequencyMillis) }
+    fun onWallpaperFrequencySelected(frequencyMillis: Long) {
+        _uiState.update { it.copy(selectedWallpaperFrequency = frequencyMillis) }
     }
 
-    /**
-     * Updates the state when the user selects a notification frequency.
-     * @param frequencyMillis The selected notification frequency value in milliseconds.
-     */
     fun onNotificationFrequencySelected(frequencyMillis: Long) {
         _uiState.update { it.copy(selectedNotificationFrequencyMillis = frequencyMillis) }
     }
 
-    /**
-     * Updates the notification permission status based on the user's response
-     * to the runtime permission request dialog.
-     * @param isGranted True if the user granted the permission, false otherwise.
-     */
     fun onNotificationPermissionResult(isGranted: Boolean) {
-        // Only update if the OS requires the permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             _uiState.update { it.copy(isNotificationPermissionGranted = isGranted) }
         }
     }
 
-    /**
-     * Saves the selected habit, frequency, and notification frequency settings using the repository.
-     * This should be called when the user clicks the "Finish" button.
-     * Assumes validation (checking if selections are non-null) happens before calling.
-     * @param onError Callback to provide user feedback in case of an error.
-     */
-    fun saveOnboardingSelections(onError: (String) -> Unit = {}) {
-        val currentState = _uiState.value
-        val habit = currentState.selectedHabit
-        val frequency = currentState.selectedFrequencyMillis
-        val notificationFrequency = currentState.selectedNotificationFrequencyMillis
-
-        if (habit != null && frequency != null && notificationFrequency != null) {
-            viewModelScope.launch {
-                try {
-                    settingsRepository.saveHabitSetting(habit)
-                    settingsRepository.saveWallpaperFrequency(frequency)
-                    settingsRepository.saveNotificationFrequency(notificationFrequency)
-                    settingsRepository.saveOnboardingComplete(true) // Mark onboarding as done
-                    // Immediately trigger a one-time wallpaper change and notification
-                    WorkManager.getInstance(applicationContext).enqueue(
-                        OneTimeWorkRequestBuilder<com.example.motiv8me.service.WallpaperWorker>().build()
-                    )
-                    WorkManager.getInstance(applicationContext).enqueue(
-                        OneTimeWorkRequestBuilder<com.example.motiv8me.service.NotificationWorker>().build()
-                    )
-                } catch (e: Exception) {
-                    // Provide user feedback on error
-                    onError("Failed to save onboarding settings. Please try again.")
-                }
+    fun setInitialWallpaper() {
+        viewModelScope.launch {
+            val habit = _uiState.value.selectedHabit
+            if (habit == null) {
+                Log.e("OnboardingViewModel", "Cannot set wallpaper, habit not selected.")
+                // Optionally update UI to inform user they need to select a habit first
+                // _uiState.update { it.copy(wallpaperSettingError = "Please select a habit first.") }
+                return@launch
             }
-        } else {
-            // This should ideally not happen if the finish button is correctly enabled/disabled
-            // Log.w("OnboardingViewModel", "Attempted to save incomplete selections")
+            Log.d("OnboardingViewModel", "Attempting to set wallpaper for habit: $habit")
+
+            try {
+                val imageList = Constants.HABIT_TO_IMAGE_MAP[habit] ?: run {
+                    Log.e("OnboardingViewModel", "No wallpaper list defined for habit: $habit")
+                    emptyList()
+                }
+
+                if (imageList.isNotEmpty()) {
+                    val wallpaperResourceId = imageList.random()
+                    Log.d("OnboardingViewModel", "Selected wallpaper resource ID: $wallpaperResourceId")
+
+                    val bitmap = BitmapFactory.decodeResource(applicationContext.resources, wallpaperResourceId)
+                    if (bitmap == null) {
+                        Log.e("OnboardingViewModel", "Failed to decode bitmap for resource ID: $wallpaperResourceId")
+                        // Optionally update UI with error
+                        // _uiState.update { it.copy(wallpaperSettingError = "Error loading wallpaper image.") }
+                        return@launch
+                    }
+                    Log.d("OnboardingViewModel", "Bitmap decoded successfully.")
+
+                    WallpaperManager.getInstance(applicationContext).setBitmap(bitmap)
+                    Log.i("OnboardingViewModel", "Wallpaper successfully set for habit: $habit")
+
+                    // Update the state to reflect that the wallpaper has been set.
+                    _uiState.update { it.copy(isWallpaperPermissionGranted = true) }
+                } else {
+                    Log.e("OnboardingViewModel", "No wallpapers found for habit: $habit after when block.")
+                    // Optionally update UI with error
+                    // _uiState.update { it.copy(wallpaperSettingError = "No wallpapers for selected habit.") }
+                }
+            } catch (e: Exception) {
+                Log.e("OnboardingViewModel", "Failed to set initial wallpaper due to an exception.", e)
+                // Optionally update UI with error
+                // _uiState.update { it.copy(isWallpaperPermissionGranted = false, wallpaperSettingError = "Could not set wallpaper.") }
+            }
+        }
+    }
+
+    fun onNextClicked() {
+        _uiState.update {
+            val nextPage = (it.currentPage + 1).coerceAtMost(it.totalPages - 1)
+            it.copy(currentPage = nextPage)
+        }
+    }
+
+    fun onBackClicked() {
+        _uiState.update {
+            val prevPage = (it.currentPage - 1).coerceAtLeast(0)
+            it.copy(currentPage = prevPage)
+        }
+    }
+
+    fun setCurrentPage(page: Int) {
+        _uiState.update { it.copy(currentPage = page.coerceIn(0, it.totalPages - 1)) }
+    }
+
+    fun saveOnboardingSelections() {
+        val currentState = _uiState.value
+        if (currentState.canCompleteOnboarding) {
+            viewModelScope.launch {
+                settingsRepository.saveHabitSetting(currentState.selectedHabit!!)
+                settingsRepository.saveWallpaperFrequency(currentState.selectedWallpaperFrequency!!)
+                settingsRepository.saveNotificationFrequency(currentState.selectedNotificationFrequencyMillis!!)
+                settingsRepository.saveOnboardingComplete(true)
+                // Enqueue the workers to start their work based on the saved settings
+                WorkManager.getInstance(applicationContext).enqueue(OneTimeWorkRequestBuilder<WallpaperWorker>().build())
+                WorkManager.getInstance(applicationContext).enqueue(OneTimeWorkRequestBuilder<NotificationWorker>().build())
+            }
         }
     }
 }

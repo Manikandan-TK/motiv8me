@@ -23,23 +23,23 @@ object Constants {
         // Add more predefined habits as desired
     )
 
-    /** Map of display names for wallpaper frequencies to their values in milliseconds. */
-    val WALLPAPER_FREQUENCIES: Map<String, Long> = mapOf(
-        "30 minutes" to TimeUnit.MINUTES.toMillis(30),
-        "1 hour" to TimeUnit.HOURS.toMillis(1),
-        "3 hours" to TimeUnit.HOURS.toMillis(3),
-        "6 hours" to TimeUnit.HOURS.toMillis(6),
-        "12 hours" to TimeUnit.HOURS.toMillis(12),
-        "Daily" to TimeUnit.DAYS.toMillis(1)
+    val SHARED_APP_FREQUENCIES: List<Pair<String, Long>> = listOf(
+        Pair("15 minutes", 15L),
+        Pair("30 minutes", 30L),
+        Pair("1 hour", 60L),
+        Pair("3 hours", 180L),
+        Pair("6 hours", 360L),
+        Pair("12 hours", 720L),
+        Pair("24 hours", 1440L)
     )
 
+    /** Map of display names for wallpaper frequencies to their values in milliseconds. */
+    val WALLPAPER_FREQUENCIES: List<Pair<String, Long>> = SHARED_APP_FREQUENCIES
+
     /** Map of display names for notification frequencies to their values in milliseconds (or special values). */
-    val NOTIFICATION_FREQUENCIES: Map<String, Long> = mapOf(
-        "Off" to 0L, // Special value for disabled
-        "Once a day" to TimeUnit.DAYS.toMillis(1),
-        "Twice a day" to TimeUnit.HOURS.toMillis(12) // Approx twice a day
-        // Add more options if needed
-    )
+    val NOTIFICATION_FREQUENCY_OPTIONS: List<Pair<String, Long>> = SHARED_APP_FREQUENCIES
+
+    const val NOTIFICATION_FREQUENCY_OFF = 0L
 
     /** List of motivational quotes for notifications. */
     val MOTIVATIONAL_QUOTES: List<String> = listOf(
@@ -119,6 +119,7 @@ object Constants {
     val PREF_KEY_SELECTED_HABIT = stringPreferencesKey("selected_habit")
     val PREF_KEY_WALLPAPER_FREQUENCY = longPreferencesKey("wallpaper_frequency_millis")
     val PREF_KEY_NOTIFICATION_FREQUENCY = longPreferencesKey("notification_frequency_millis") // 0 means off
+    val PREF_KEY_THEME_PREFERENCE = stringPreferencesKey("theme_preference")
 
     // --- WorkManager ---
     const val WALLPAPER_WORKER_TAG = "WallpaperWorkerTag"

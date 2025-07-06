@@ -15,9 +15,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.motiv8me.R // For string resources if needed
+import com.example.motiv8me.model.Constants
 import com.example.motiv8me.ui.navigation.ThemeToggleActions
 import com.example.motiv8me.ui.theme.Motiv8MeTheme
-import com.example.motiv8me.util.Constants
 
 /**
  * Composable screen for selecting a predefined habit from a list.
@@ -62,13 +62,14 @@ fun HabitSelectionScreen(
                 HabitListItem(
                     habitName = habit,
                     onClick = {
-                        onHabitSelected(habit)
+                        val habitKey = Constants.HABIT_CATEGORIES[habit] ?: habit
+                        onHabitSelected(habitKey)
                         // Optionally navigate back immediately after selection,
                         // or let the calling screen handle it based on the callback.
                         // onNavigateBack() // Uncomment if immediate back navigation is desired
                     }
                 )
-                Divider(thickness = 0.5.dp) // Add a thin divider between items
+                HorizontalDivider(thickness = 0.5.dp) // Add a thin divider between items
             }
         }
     }

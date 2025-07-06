@@ -13,5 +13,7 @@ data class AppSettings(
     val selectedHabit: String?,
     val wallpaperFrequencyMillis: Long?,
     val notificationFrequencyMillis: Long?,
-    val isOnboardingComplete: Boolean
+    val isOnboardingComplete: Boolean,
+    val notificationFrequencyMinutes: Long = 0,
+    val wallpaperChangeFrequencyMinutes: Long = 0
 )

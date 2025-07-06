@@ -1,56 +1,72 @@
-Motiv8Me
-Motiv8Me is an Android app designed to help users break bad habits through visual and motivational reinforcement. By automatically changing the home screen wallpaper to habit-related images and delivering motivational quotes via notifications, the app provides a constant, subtle reminder to stay on track.
-Features
+# Motiv8Me
 
-Habit Selection: Choose from a list of predefined habits to focus on.
-Frequency Selection: Set how often the wallpaper changes (e.g., every 30 minutes, hourly, daily).
-Automatic Wallpaper Change: The app changes the home screen wallpaper based on the selected habit and frequency.
-Motivational Notifications: Receive motivational quotes via notifications at a user-defined frequency.
-Settings Management: Easily adjust your habit, wallpaper frequency, and notification preferences.
-Modern UI: Built with Jetpack Compose and Material Design 3, supporting both light and dark themes.
-Onboarding: A streamlined first-launch experience to guide you through setup.
-Performance & Reliability: Designed to be efficient and reliable, with minimal impact on battery life.
+Motiv8Me is an Android app designed to help users build positive habits and break unwanted ones through visual and motivational reinforcement. By automatically changing the home screen wallpaper to habit-related images and delivering motivational quotes via notifications, the app provides a constant, subtle reminder to stay on track.
 
-Note: This version focuses on the free tier features. A future paid tier will offer advanced features like custom habits and wallpaper uploads.
-Technical Stack
+## Features
 
-Language: Kotlin
-UI Toolkit: Jetpack Compose with Material Design 3
-Architecture: MVVM (Model-View-ViewModel)
-State Management: Unidirectional Data Flow using ViewModel and StateFlow
-Background Processing: WorkManager for scheduling wallpaper changes and notifications
-Persistence: Preferences DataStore for storing user settings
-Dependency Injection: Hilt
-Navigation: Compose Navigation
-Image Loading: Coil
-Permissions: Required for setting wallpaper, posting notifications, and handling boot events
+*   **Guided Onboarding:** A streamlined first-launch experience to help users select their initial habit, set preferences for wallpaper changes and notifications, and grant necessary permissions smoothly. Includes conditional progression to ensure all steps are completed.
+*   **Habit Selection:** Choose from a list of predefined habits to focus on (e.g., Stop Smoking, Exercise More).
+*   **Automatic Wallpaper Change:** The app dynamically changes the device's home screen wallpaper based on the selected habit and user-defined frequency.
+*   **Motivational Notifications:** Receive timely motivational quotes via notifications. Frequency and overall enablement of notifications are configurable.
+*   **Comprehensive Settings Management:**
+    *   **Personalization:** Easily adjust your selected Focus Habit, Wallpaper Frequency, and Notification Preferences (including enabling/disabling notifications and setting their frequency).
+    *   **App Permissions:** Clearly view and manage permissions for Wallpaper and Notifications, with direct links to system settings.
+    *   **Upgrade Information:** Details on features available in potential Pro versions.
+*   **Modern UI:** Built with Jetpack Compose and Material Design 3, offering a clean interface that supports both light and dark themes.
+*   **Performance & Reliability:** Designed to be efficient and reliable, with minimal impact on battery life using WorkManager for background tasks.
 
-Getting Started
-Prerequisites
+*Note: This version focuses on the free tier features. A future paid tier may offer advanced features like custom habits and wallpaper uploads.*
 
-Android Studio (latest stable version)
-JDK 11 or higher
+## Technical Stack
 
-Setup
+*   **Language:** Kotlin
+*   **UI Toolkit:** Jetpack Compose with Material Design 3
+*   **Architecture:** MVVM (Model-View-ViewModel)
+*   **State Management:** Unidirectional Data Flow using ViewModel and StateFlow/SharedFlow
+*   **Background Processing:** WorkManager for scheduling wallpaper changes and notifications
+*   **Persistence:** Preferences DataStore for storing user settings
+*   **Dependency Injection:** Hilt
+*   **Navigation:** Compose Navigation
+*   **Image Loading:** Coil (if still used for wallpapers)
+*   **Permissions:** Runtime handling for `SET_WALLPAPER` (for direct wallpaper setting) and `POST_NOTIFICATIONS` (Android 13+).
 
-Clone the repository:git clone https://github.com/Manikandan-TK/motiv8me.git
+## Getting Started
 
+### Prerequisites
 
-Open the project in Android Studio.
-Build the project to resolve dependencies.
-Run the app on an emulator or physical device.
+*   Android Studio (latest stable version)
+*   JDK 17 or higher (Updated from JDK 11 as it's a common modern Android practice)
 
-Project Structure
+### Setup
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/Manikandan-TK/motiv8me.git
+    ```
+2.  Open the project in Android Studio.
+3.  Build the project to resolve dependencies (Sync Gradle).
+4.  Run the app on an emulator or physical device.
+
+## Project Structure
+
 The project is organized into the following main directories:
 
-data/: Manages data sources, including DataStore for settings.
-domain/: Contains business logic, data models, and use cases.
-di/: Hilt modules for dependency injection.
-service/: WorkManager workers for background tasks.
-ui/: User interface components, including navigation, themes, and feature-specific screens.
-util/: Utility classes and constants.
+*   `app/src/main/java/com/example/motiv8me/`
+    *   `data/`: Manages data sources, including DataStore for settings and potentially habit/image repositories.
+    *   `di/`: Hilt modules for dependency injection.
+    *   `domain/`: Contains business logic, use cases, and data models.
+    *   `service/`: WorkManager workers for background tasks (e.g., `WallpaperWorker`, `NotificationWorker`).
+    *   `ui/`: User interface components, including:
+        *   `features/`: Screen-specific Composables, ViewModels, and navigation (e.g., `onboarding`, `settings`, `notification_settings`).
+        *   `theme/`: App theme, colors, typography.
+        *   `components/`: Reusable UI components.
+    *   `util/`: Utility classes, constants, and extension functions.
 
-Contributing
+## Contributing
+
 We welcome contributions to Motiv8Me! Please ensure your code adheres to the project's coding standards and best practices.
-License
-This project is licensed under the MIT License - see the LICENSE file for details.
+(Consider adding more specific contribution guidelines here if you plan to open it up, e.g., issue templates, PR process).
+
+## License
+
+This project is licensed under the MIT License - see the `LICENSE` file for details.

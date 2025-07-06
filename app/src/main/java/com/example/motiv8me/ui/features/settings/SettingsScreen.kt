@@ -1,227 +1,381 @@
 package com.example.motiv8me.ui.features.settings
 
+import android.content.Context
 import android.content.Intent
-import android.os.Build
+import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Style
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.motiv8me.R
-import com.example.motiv8me.ui.components.FrequencySelector
-import com.example.motiv8me.ui.navigation.ThemeToggleActions
 import com.example.motiv8me.ui.theme.Motiv8MeTheme
-import com.example.motiv8me.util.PermissionUtils
 
-/**
- * Main settings screen composable. Allows users to view and modify app preferences.
- *
- * @param onNavigateToHabitSelection Callback to navigate to the habit selection screen.
- * @param onNavigateToNotificationSettings Callback to navigate to the notification settings screen.
- * @param viewModel The ViewModel associated with this screen.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    viewModel: SettingsViewModel = hiltViewModel(),
+    onNavigateBack: () -> Unit,
     onNavigateToHabitSelection: () -> Unit,
     onNavigateToNotificationSettings: () -> Unit,
-    viewModel: SettingsViewModel = hiltViewModel()
+    onNavigateToPro: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    // Defensive: Check permissions
-    val wallpaperPermissionGranted = PermissionUtils.hasWallpaperPermission(context)
-    val notificationPermissionGranted = PermissionUtils.hasNotificationPermission(context)
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshPermissions()
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary),
-                actions = {
-                    ThemeToggleActions()
-                }
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_navigate_back))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
     ) { paddingValues ->
         if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else {
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
+                    .padding(paddingValues),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // --- Permission Status Section ---
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f))
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(
-                            text = stringResource(R.string.settings_permissions_status_title),
-                            style = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.tertiary)
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        PermissionStatusRow(
-                            label = stringResource(R.string.permission_wallpaper),
-                            granted = wallpaperPermissionGranted,
-                            onFix = {
-                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                                intent.data = android.net.Uri.parse("package:" + context.packageName)
-                                context.startActivity(intent)
-                            }
-                        )
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            PermissionStatusRow(
-                                label = stringResource(R.string.permission_notifications),
-                                granted = notificationPermissionGranted,
-                                onFix = {
-                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                                    intent.data = android.net.Uri.parse("package:" + context.packageName)
-                                    context.startActivity(intent)
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // --- Habit Setting ---
-                SettingItemRow(
-                    title = stringResource(R.string.settings_habit_title),
-                    currentValue = uiState.currentHabit ?: stringResource(R.string.settings_habit_not_set),
-                    onClick = onNavigateToHabitSelection
-                )
-
-                Divider()
-
-                // --- Wallpaper Frequency Setting ---
-                SettingItemRow(
-                    title = stringResource(R.string.settings_wallpaper_frequency_title),
-                    onClick = null // Click handled by selector
-                ) { // Content slot for the selector
-                    FrequencySelector(
-                        availableFrequencies = uiState.availableWallpaperFrequencies,
-                        selectedFrequencyMillis = uiState.currentWallpaperFrequencyMillis,
-                        onFrequencySelected = viewModel::onWallpaperFrequencyChanged,
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 16.dp)
+                item {
+                    PersonalizationSection(
+                        uiState = uiState,
+                        onHabitClick = onNavigateToHabitSelection,
+                        onWallpaperFrequencyChanged = viewModel::onWallpaperFrequencyChanged,
+                        onNotificationClick = onNavigateToNotificationSettings,
+                        onThemeChanged = viewModel::onThemeChanged
                     )
                 }
-
-                Divider()
-
-                // --- Notification Settings Navigation ---
-                SettingItemRow(
-                    title = stringResource(R.string.settings_notification_title),
-                    currentValue = viewModel.getFrequencyDisplayName(
-                        uiState.currentNotificationFrequencyMillis,
-                        uiState.availableNotificationFrequencies
-                    ) ?: stringResource(R.string.settings_notification_off),
-                    onClick = onNavigateToNotificationSettings
-                )
-
-                Divider()
-
-                // --- Optional: Placeholder for Pro Features ---
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = stringResource(R.string.settings_pro_features_info),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-
-            } // End Column
-        } // End else (not loading)
-    } // End Scaffold
-}
-
-@Composable
-private fun PermissionStatusRow(label: String, granted: Boolean, onFix: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
-        if (granted) {
-            Text(stringResource(id = R.string.permission_granted), color = Color(0xFF388E3C))
-        } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                TextButton(onClick = onFix) {
-                    Text(stringResource(id = R.string.open_settings), color = Color(0xFFD32F2F))
+                item {
+                    PermissionsSection(
+                        uiState = uiState,
+                        context = context
+                    )
+                }
+                item {
+                    UpgradeSection(onClick = onNavigateToPro)
                 }
             }
         }
     }
 }
 
-/**
- * Reusable composable for displaying a setting item row.
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingItemRow(
+private fun SettingsSectionCard(
     title: String,
-    currentValue: String? = null,
-    onClick: (() -> Unit)? = null,
-    content: (@Composable () -> Unit)? = null
+    icon: ImageVector,
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    val rowModifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
-
-    ListItem(
-        headlineContent = { Text(title) },
-        supportingContent = if (currentValue != null && content == null) {
-            { Text(currentValue) }
-        } else null,
-        trailingContent = if (onClick != null && content == null) {
-            { Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, modifier = Modifier.size(16.dp)) }
-        } else null,
-        modifier = rowModifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-    )
-
-    if (content != null) {
-        Box(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             content()
         }
     }
 }
 
-// --- Preview ---
+@Composable
+private fun PersonalizationSection(
+    uiState: SettingsUiState,
+    onHabitClick: () -> Unit,
+    onWallpaperFrequencyChanged: (Long) -> Unit,
+    onNotificationClick: () -> Unit,
+    onThemeChanged: (String) -> Unit
+) {
+    SettingsSectionCard(
+        title = stringResource(R.string.settings_section_personalization),
+        icon = Icons.Default.Palette
+    ) {
+        SettingsItemRow(
+            title = stringResource(R.string.settings_label_focus_habit),
+            subtitle = uiState.currentHabit,
+            icon = Icons.Default.Style,
+            onClick = onHabitClick
+        )
+        HorizontalDivider()
+        WallpaperFrequencyDropdown(
+            uiState = uiState,
+            onFrequencyChanged = onWallpaperFrequencyChanged
+        )
+        HorizontalDivider()
+        ThemeDropdown(
+            uiState = uiState,
+            onThemeChanged = onThemeChanged
+        )
+        HorizontalDivider()
+        SettingsItemRow(
+            title = stringResource(R.string.settings_label_notification_frequency),
+            subtitle = uiState.notificationFrequencyDisplayName,
+            icon = Icons.Default.Notifications,
+            onClick = onNotificationClick
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ThemeDropdown(
+    uiState: SettingsUiState,
+    onThemeChanged: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = expanded }
+    ) {
+        SettingsItemRow(
+            title = "Theme", // Using hardcoded string for reliability
+            subtitle = uiState.selectedTheme,
+            icon = Icons.Default.Style,
+            modifier = Modifier.menuAnchor(),
+            onClick = { expanded = true }
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            uiState.availableThemes.forEach { theme ->
+                DropdownMenuItem(
+                    text = { Text(theme) },
+                    onClick = {
+                        onThemeChanged(theme)
+                        expanded = false
+                    },
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WallpaperFrequencyDropdown(
+    uiState: SettingsUiState,
+    onFrequencyChanged: (Long) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        SettingsItemRow(
+            title = stringResource(R.string.settings_label_wallpaper_frequency),
+            subtitle = uiState.wallpaperFrequencyDisplayName,
+            icon = Icons.Default.Timer,
+            modifier = Modifier.menuAnchor(),
+            onClick = { expanded = true }
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            uiState.availableWallpaperFrequencies.forEach { (name, value) ->
+                DropdownMenuItem(
+                    text = { Text(name) },
+                    onClick = {
+                        onFrequencyChanged(value)
+                        expanded = false
+                    },
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun PermissionsSection(
+    uiState: SettingsUiState,
+    context: Context
+) {
+    fun openAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+        intent.data = Uri.fromParts("package", context.packageName, null)
+        context.startActivity(intent)
+    }
+
+    SettingsSectionCard(
+        title = stringResource(R.string.settings_section_permissions),
+        icon = Icons.Default.Security
+    ) {
+        PermissionRow(
+            label = stringResource(R.string.settings_label_wallpaper_permission),
+            isGranted = uiState.hasWallpaperPermission,
+            onClick = ::openAppSettings
+        )
+        HorizontalDivider()
+        PermissionRow(
+            label = stringResource(R.string.settings_label_notification_permission),
+            isGranted = uiState.hasNotificationPermission,
+            onClick = ::openAppSettings
+        )
+    }
+}
+
+@Composable
+private fun UpgradeSection(onClick: () -> Unit) {
+    SettingsSectionCard(
+        title = stringResource(R.string.settings_section_upgrade),
+        icon = Icons.Default.Star
+    ) {
+        SettingsItemRow(
+            title = stringResource(R.string.settings_label_pro_features),
+            subtitle = stringResource(R.string.settings_value_pro_features),
+            icon = Icons.Default.Star,
+            onClick = onClick
+        )
+    }
+}
+
+@Composable
+private fun SettingsItemRow(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
+) {
+    val rowModifier = if (onClick != null) {
+        modifier.clickable(onClick = onClick)
+    } else {
+        modifier
+    }
+
+    Row(
+        modifier = rowModifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.secondary
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (onClick != null) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun PermissionRow(label: String, isGranted: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodyLarge)
+        Text(
+            text = if (isGranted) stringResource(R.string.permission_granted) else stringResource(R.string.permission_denied),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold,
+            color = if (isGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+        )
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun SettingsScreenPreview() {
     Motiv8MeTheme {
-        SettingsScreen(
-            onNavigateToHabitSelection = {},
-            onNavigateToNotificationSettings = {}
-        )
+        // This is a simplified preview and won't reflect the ViewModel's state.
+        // For a full preview, a PreviewParameterProvider would be needed.
+        Scaffold { padding ->
+            LazyColumn(
+                modifier = Modifier.padding(padding),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item {
+                    SettingsSectionCard(title = "Personalization", icon = Icons.Default.Palette) {
+                        SettingsItemRow(title = "Focus Habit", subtitle = "Exercise More", icon = Icons.Default.Style, onClick = {})
+                        HorizontalDivider()
+                        SettingsItemRow(title = "Wallpaper Frequency", subtitle = "Every 6 hours", icon = Icons.Default.Timer, onClick = {})
+                        HorizontalDivider()
+                        SettingsItemRow(title = "Notification Frequency", subtitle = "Once a day", icon = Icons.Default.Notifications, onClick = {})
+                    }
+                }
+            }
+        }
     }
 }

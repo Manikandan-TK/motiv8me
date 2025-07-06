@@ -9,10 +9,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.motiv8me.ui.navigation.AppNavigation // Will be created later
-import com.example.motiv8me.ui.navigation.SharedThemeSettings
+import com.example.motiv8me.domain.repository.SettingsRepository
+import javax.inject.Inject
 import com.example.motiv8me.ui.theme.Motiv8MeTheme // Will be created later
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -26,18 +28,23 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint // Enable Hilt for dependency injection in this Activity
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContent {
-            val useSystemTheme by SharedThemeSettings.useSystemTheme
-            val isDarkTheme = if (useSystemTheme) {
-                isSystemInDarkTheme()
-            } else {
-                SharedThemeSettings.isDarkTheme.value
-            }
             
-            Motiv8MeTheme(darkTheme = isDarkTheme) {
+
+            val theme by settingsRepository.themePreference.collectAsStateWithLifecycle(initialValue = "System")
+            val useDarkTheme = when (theme) {
+                "Light" -> false
+                "Dark" -> true
+                else -> isSystemInDarkTheme()
+            }
+
+            Motiv8MeTheme(darkTheme = useDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

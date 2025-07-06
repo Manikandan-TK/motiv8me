@@ -8,6 +8,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.fillMaxWidth
 import com.example.motiv8me.ui.theme.Motiv8MeTheme
 import java.util.concurrent.TimeUnit
+import androidx.compose.material3.MenuAnchorType
 
 /**
  * A dropdown menu composable for selecting a wallpaper change frequency.
@@ -48,7 +49,7 @@ fun FrequencySelector(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
             modifier = Modifier
-                .menuAnchor() // Anchor the dropdown menu
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable) // Anchor the dropdown menu
                 .fillMaxWidth()
         )
 
@@ -108,4 +109,3 @@ private fun FrequencySelectorSelectedPreview() {
         )
     }
 }
-

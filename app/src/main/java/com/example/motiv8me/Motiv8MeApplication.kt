@@ -1,24 +1,31 @@
-package com.example.motiv8me // Ensure this matches your base package
+package com.example.motiv8me
 
 import android.app.Application
-import androidx.work.Configuration
-import androidx.hilt.work.HiltWorkerFactory
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
 import dagger.hilt.android.HiltAndroidApp
-import javax.inject.Inject
 
-@HiltAndroidApp // Crucial for Hilt setup
-class Motiv8MeApplication : Application(), Configuration.Provider {
-
-    @Inject lateinit var workerFactory: HiltWorkerFactory
+@HiltAndroidApp
+class Motiv8MeApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // Initialize anything needed application-wide here
-        // e.g., Timber logging library if you add it later
+        createNotificationChannel()
     }
 
-    override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder()
-            .setWorkerFactory(workerFactory)
-            .build()
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "Motivational Quotes"
+            val descriptionText = "Channel for motivational quote notifications."
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel("MOTIVATION_CHANNEL_ID", name, importance).apply {
+                description = descriptionText
+            }
+            val notificationManager: NotificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
 }

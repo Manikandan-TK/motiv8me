@@ -29,6 +29,12 @@ abstract class RepositoryModule { // Use 'abstract class' when using @Binds
         settingsRepositoryImpl: SettingsRepositoryImpl
     ): SettingsRepository
 
+    @Binds
+    @Singleton
+    abstract fun bindPermissionManager(
+        permissionManagerImpl: com.example.motiv8me.data.permission.PermissionManagerImpl
+    ): com.example.motiv8me.domain.permission.PermissionManager
+
     // Add bindings for other repositories here if created later
     // e.g., @Binds abstract fun bindHabitRepository(impl: HabitRepositoryImpl): HabitRepository
 

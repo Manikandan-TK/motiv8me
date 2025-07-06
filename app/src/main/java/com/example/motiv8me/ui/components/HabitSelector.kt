@@ -7,6 +7,7 @@ import androidx.compose.ui.tooling.preview.Preview
 // Required imports for the preview and component
 import androidx.compose.foundation.layout.fillMaxWidth
 import com.example.motiv8me.ui.theme.Motiv8MeTheme
+import androidx.compose.material3.MenuAnchorType
 
 /**
  * A dropdown menu composable for selecting a predefined habit.
@@ -41,7 +42,7 @@ fun HabitSelector(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
             modifier = Modifier
-                .menuAnchor() // Important: Anchor the dropdown menu to this text field
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable) // Important: Anchor the dropdown menu to this text field
                 .fillMaxWidth()
         )
 
@@ -90,4 +91,3 @@ private fun HabitSelectorSelectedPreview() {
         )
     }
 }
-

@@ -44,6 +44,10 @@ interface SettingsRepository {
      */
     suspend fun saveOnboardingComplete(isComplete: Boolean)
 
+    val themePreference: Flow<String>
+
+    suspend fun saveThemePreference(theme: String)
+
     // Optional: Individual getter methods if needed, though Flow is often preferred.
     // suspend fun getSelectedHabit(): String?
     // suspend fun getWallpaperFrequency(): Long?
