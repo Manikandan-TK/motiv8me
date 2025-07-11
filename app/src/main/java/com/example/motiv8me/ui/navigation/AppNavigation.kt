@@ -18,7 +18,8 @@ import com.example.motiv8me.ui.features.home.HomeScreen
 import com.example.motiv8me.ui.features.notification_settings.NotificationSettingsScreen
 import com.example.motiv8me.ui.features.onboarding.OnboardingScreen
 import com.example.motiv8me.ui.features.settings.SettingsScreen
-import com.example.motiv8me.ui.features.settings.SettingsViewModel // Import SettingsViewModel
+import com.example.motiv8me.ui.features.settings.SettingsViewModel
+import com.example.motiv8me.ui.features.upgrade.UpgradeScreen // IMPORT THE NEW SCREEN
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
@@ -43,17 +44,17 @@ fun ThemeToggleActions() {
     var showThemeMenu by remember { mutableStateOf(false) }
     val useSystemTheme by SharedThemeSettings.useSystemTheme
     val isDarkTheme by SharedThemeSettings.isDarkTheme
-    
+
     Box {
         IconButton(onClick = { showThemeMenu = true }) {
             Icon(
-                imageVector = if (useSystemTheme) Icons.Default.DarkMode 
-                    else if (isDarkTheme) Icons.Default.DarkMode 
-                    else Icons.Default.LightMode,
+                imageVector = if (useSystemTheme) Icons.Default.DarkMode
+                else if (isDarkTheme) Icons.Default.DarkMode
+                else Icons.Default.LightMode,
                 contentDescription = "Theme settings"
             )
         }
-        
+
         DropdownMenu(
             expanded = showThemeMenu,
             onDismissRequest = { showThemeMenu = false }
@@ -85,42 +86,24 @@ fun ThemeToggleActions() {
     }
 }
 
-/**
- * Sets up the navigation graph for the application using Jetpack Compose Navigation.
- *
- * It defines all possible screens (destinations) and the transitions between them.
- * Start destination is dynamically determined by AppNavigationViewModel.
- *
- * @param modifier Modifier to be applied to the NavHost container.
- * @param navController The navigation controller used to manage navigation state.
- * @param appNavigationViewModel ViewModel to determine the start destination.
- */
 @Composable
 fun AppNavigation(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    // Inject the ViewModel responsible for determining the start destination
     appNavigationViewModel: AppNavigationViewModel = hiltViewModel()
 ) {
-    // Observe the start destination state from the AppNavigationViewModel
     val startDestination by appNavigationViewModel.startDestination.collectAsState()
 
-    // Display content based on whether the start destination is determined
     if (startDestination == null) {
-        // Show a loading indicator while determining the start destination
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
     } else {
-        // Build the NavHost once the start destination is known
         NavHost(
             navController = navController,
-            startDestination = startDestination!!, // Use non-null assertion as checked above
+            startDestination = startDestination!!,
             modifier = modifier
         ) {
-            // --- Destinations ---
-
-            // Onboarding Screen
             composable(route = ScreenDestinations.Onboarding.route) {
                 OnboardingScreen(
                     onOnboardingComplete = {
@@ -132,7 +115,6 @@ fun AppNavigation(
                 )
             }
 
-            // Home Screen (Placeholder)
             composable(route = ScreenDestinations.Home.route) {
                 HomeScreen(
                     onNavigateToSettings = {
@@ -143,7 +125,6 @@ fun AppNavigation(
                 )
             }
 
-            // Settings Screen
             composable(route = ScreenDestinations.Settings.route) {
                 SettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
@@ -153,15 +134,14 @@ fun AppNavigation(
                     onNavigateToNotificationSettings = {
                         navController.navigate(ScreenDestinations.NotificationSettings.route)
                     },
+                    // UPDATE THIS LAMBDA
                     onNavigateToPro = {
-                        // TODO: Replace with actual navigation to a pro/upgrade screen
+                        navController.navigate(ScreenDestinations.Upgrade.route)
                     }
                 )
             }
 
-            // Habit Selection Screen
             composable(route = ScreenDestinations.HabitSelection.route) {
-                // Get SettingsViewModel scoped to the previous entry (SettingsScreen)
                 val settingsViewModel: SettingsViewModel = hiltViewModel(
                     navController.previousBackStackEntry
                         ?: throw IllegalStateException("Cannot access previous back stack entry for SettingsViewModel")
@@ -176,15 +156,18 @@ fun AppNavigation(
                 )
             }
 
-            // Notification Settings Screen
             composable(route = ScreenDestinations.NotificationSettings.route) {
-                // Uses its own ViewModel (NotificationSettingsViewModel) via hiltViewModel()
                 NotificationSettingsScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-        } // End NavHost
-    } // End else (startDestination != null)
-}
 
-// Ensure temporary placeholder screens are removed from the bottom of this file.
+            // ADD THIS NEW COMPOSABLE DESTINATION
+            composable(route = ScreenDestinations.Upgrade.route) {
+                UpgradeScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+        }
+    }
+}

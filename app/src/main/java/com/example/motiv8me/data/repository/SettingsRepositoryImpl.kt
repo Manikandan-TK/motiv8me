@@ -34,12 +34,16 @@ class SettingsRepositoryImpl @Inject constructor(
                 val selectedHabit = preferences[Constants.PREF_KEY_SELECTED_HABIT]
                 val wallpaperFrequency = preferences[Constants.PREF_KEY_WALLPAPER_FREQUENCY_MINUTES]
                 val notificationFrequency = preferences[Constants.PREF_KEY_NOTIFICATION_FREQUENCY_MINUTES]
+                // READ THE NEW VALUE HERE
+                val isProUser = preferences[Constants.PREF_KEY_IS_PRO_USER] ?: false
 
                 AppSettings(
                     isOnboardingComplete = onboardingComplete,
                     selectedHabit = selectedHabit,
                     wallpaperFrequencyMinutes = wallpaperFrequency,
-                    notificationFrequencyMinutes = notificationFrequency
+                    notificationFrequencyMinutes = notificationFrequency,
+                    // ADD THE NEW VALUE TO THE CONSTRUCTOR
+                    isProUser = isProUser
                 )
             }
     }
@@ -67,6 +71,14 @@ class SettingsRepositoryImpl @Inject constructor(
             preferences[Constants.PREF_KEY_ONBOARDING_COMPLETE] = isComplete
         }
     }
+
+    // --- ADD THE NEW FUNCTION IMPLEMENTATION ---
+    override suspend fun saveIsProUser(isPro: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[Constants.PREF_KEY_IS_PRO_USER] = isPro
+        }
+    }
+    // -------------------------------------------
 
     // --- Theme preference remains unchanged ---
     override val themePreference: Flow<String> = dataStore.data

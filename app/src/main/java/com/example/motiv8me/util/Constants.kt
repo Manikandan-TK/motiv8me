@@ -13,6 +13,9 @@ object Constants {
     val PREF_KEY_WALLPAPER_FREQUENCY_MINUTES = longPreferencesKey("wallpaper_frequency_minutes")
     val PREF_KEY_NOTIFICATION_FREQUENCY_MINUTES = longPreferencesKey("notification_frequency_minutes")
     val PREF_KEY_THEME_PREFERENCE = stringPreferencesKey("theme_preference")
+    // ADD THIS LINE
+    val PREF_KEY_IS_PRO_USER = booleanPreferencesKey("is_pro_user")
+
 
     // --- WorkManager ---
     const val WALLPAPER_WORKER_NAME = "Motiv8MeWallpaperChanger"

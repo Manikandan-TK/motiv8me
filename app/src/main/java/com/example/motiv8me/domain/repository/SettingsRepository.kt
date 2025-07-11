@@ -11,4 +11,5 @@ interface SettingsRepository {
     suspend fun saveOnboardingComplete(isComplete: Boolean)
     val themePreference: Flow<String>
     suspend fun saveThemePreference(theme: String)
+    suspend fun saveIsProUser(isPro: Boolean)
 }

@@ -8,10 +8,12 @@ package com.example.motiv8me.domain.model
  * @param notificationFrequencyMinutes The interval for motivational notifications in minutes.
  *                                     0L indicates notifications are off. Null if not set.
  * @param isOnboardingComplete Flag indicating if the user has completed the initial setup flow.
+ * @param isProUser Flag indicating if the user has unlocked premium features.
  */
 data class AppSettings(
     val isOnboardingComplete: Boolean,
     val selectedHabit: String?,
     val wallpaperFrequencyMinutes: Long?,
-    val notificationFrequencyMinutes: Long?
+    val notificationFrequencyMinutes: Long?,
+    val isProUser: Boolean
 )
