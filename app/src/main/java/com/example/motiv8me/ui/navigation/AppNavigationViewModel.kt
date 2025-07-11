@@ -32,8 +32,8 @@ class AppNavigationViewModel @Inject constructor(
 
             // Update the StateFlow with the determined start route
             _startDestination.value = if (isOnboardingComplete) {
-                // User has completed onboarding, start at Settings (or Home)
-                ScreenDestinations.Settings.route // Or ScreenDestinations.Home.route if preferred
+                // CORRECTED: User has completed onboarding, start at the Home screen.
+                ScreenDestinations.Home.route
             } else {
                 // User needs to complete onboarding first
                 ScreenDestinations.Onboarding.route

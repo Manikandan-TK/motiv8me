@@ -11,36 +11,51 @@ import com.example.motiv8me.domain.repository.SettingsRepository
 import com.example.motiv8me.util.Constants
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.first
 import java.io.IOException
 
+// 1. DEFINE AN ENTRYPOINT INTERFACE
+// This tells Hilt how to give us a SettingsRepository on demand.
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface WallpaperWorkerEntryPoint {
+    fun settingsRepository(): SettingsRepository
+}
+
 @HiltWorker
+// 2. SIMPLIFY THE CONSTRUCTOR
+// Remove the SettingsRepository from the constructor to avoid the instantiation error.
 class WallpaperWorker @AssistedInject constructor(
-    @Assisted appContext: Context,
-    @Assisted workerParams: WorkerParameters,
-    // ADDED: Inject the repository
-    private val settingsRepository: SettingsRepository
+    @Assisted private val appContext: Context,
+    @Assisted workerParams: WorkerParameters
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
         const val TAG = "WallpaperWorker"
-        // REMOVED: KEY_HABIT_CATEGORY as we now fetch it directly
     }
 
     override suspend fun doWork(): Result {
         Log.i(TAG, "WallpaperWorker started. Attempt: $runAttemptCount")
 
+        // 3. GET THE DEPENDENCY MANUALLY VIA THE ENTRYPOINT
+        // This is the new, robust way to get our repository.
+        val entryPoint = EntryPointAccessors.fromApplication(appContext, WallpaperWorkerEntryPoint::class.java)
+        val settingsRepository = entryPoint.settingsRepository()
+
         return try {
-            // CHANGED: Get the habit directly from the repository
+            // The rest of the logic is exactly the same.
             val habitKey = settingsRepository.getSettings().first().selectedHabit
             if (habitKey.isNullOrEmpty()) {
                 Log.e(TAG, "Failed - Habit key is missing from settings!")
-                return Result.failure() // Stop work if no habit is set
+                return Result.failure()
             }
 
             Log.d(TAG, "Found habit key: $habitKey")
 
-            // CHANGED: Use the habit key to get the image list from the map
             val imageList = Constants.HABIT_TO_IMAGE_MAP[habitKey]
             if (imageList.isNullOrEmpty()) {
                 Log.e(TAG, "Failed - No wallpapers found for habit key: $habitKey")

@@ -14,7 +14,7 @@ import javax.inject.Singleton
 
 @Singleton
 class PermissionManagerImpl @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : PermissionManager {
 
     private val _permissionStatus = MutableStateFlow(getInitialPermissionStatus())

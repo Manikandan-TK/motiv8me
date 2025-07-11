@@ -8,14 +8,15 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.motiv8me.domain.permission.PermissionManager
 import com.example.motiv8me.domain.repository.SettingsRepository
 import com.example.motiv8me.domain.usecase.CancelAllWorkersUseCase
 import com.example.motiv8me.domain.usecase.ScheduleNotificationWorkerUseCase
 import com.example.motiv8me.domain.usecase.ScheduleWallpaperWorkerUseCase
+import com.example.motiv8me.domain.usecase.SetWallpaperOnceUseCase // CORRECTED: Import the new use case
 import com.example.motiv8me.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import com.example.motiv8me.domain.permission.PermissionManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -35,12 +36,13 @@ data class SettingsUiState(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val settingsRepository: SettingsRepository,
     private val scheduleWallpaperWorkerUseCase: ScheduleWallpaperWorkerUseCase,
     private val scheduleNotificationWorkerUseCase: ScheduleNotificationWorkerUseCase,
     private val cancelAllWorkersUseCase: CancelAllWorkersUseCase,
-    private val permissionManager: PermissionManager
+    private val permissionManager: PermissionManager,
+    private val setWallpaperOnceUseCase: SetWallpaperOnceUseCase // CORRECTED: Inject the new use case
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -102,7 +104,13 @@ class SettingsViewModel @Inject constructor(
 
     fun onHabitChanged(newHabitKey: String) {
         viewModelScope.launch {
+            // Save the new habit setting
             settingsRepository.saveHabitSetting(newHabitKey)
+
+            // CORRECTED: Immediately set the wallpaper to give the user instant feedback.
+            setWallpaperOnceUseCase()
+
+            // Reschedule the periodic worker for all future wallpaper changes.
             scheduleWallpaperWorkerUseCase()
         }
     }
