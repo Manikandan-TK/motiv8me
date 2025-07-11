@@ -2,80 +2,71 @@ package com.example.motiv8me.service
 
 import android.app.WallpaperManager
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
+import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.example.motiv8me.R
+import com.example.motiv8me.domain.repository.SettingsRepository
+import com.example.motiv8me.util.Constants
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
+import kotlinx.coroutines.flow.first
 import java.io.IOException
 
-class WallpaperWorker(appContext: Context, workerParams: WorkerParameters) :
-    CoroutineWorker(appContext, workerParams) {
+@HiltWorker
+class WallpaperWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters,
+    // ADDED: Inject the repository
+    private val settingsRepository: SettingsRepository
+) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
         const val TAG = "WallpaperWorker"
-        const val KEY_HABIT_CATEGORY = "KEY_HABIT_CATEGORY"
-        private const val MAX_WALLPAPERS_PER_CATEGORY = 20
+        // REMOVED: KEY_HABIT_CATEGORY as we now fetch it directly
     }
 
     override suspend fun doWork(): Result {
-        Log.i(TAG, "doWork: Triggered. Attempt: $runAttemptCount") // Log run attempt
-
-        val habitCategory = inputData.getString(KEY_HABIT_CATEGORY)
-
-        if (habitCategory.isNullOrEmpty()) {
-            Log.e(TAG, "doWork: Failed - Habit category is missing!")
-            return Result.failure()
-        }
-
-        Log.d(TAG, "doWork: Category: $habitCategory")
+        Log.i(TAG, "WallpaperWorker started. Attempt: $runAttemptCount")
 
         return try {
-            val resources = applicationContext.resources
-            val packageName = applicationContext.packageName
-            val dynamicImageList = mutableListOf<Int>()
-            val namePrefix = "wallpaper_${habitCategory}_"
-
-            Log.d(TAG, "doWork: Searching for drawables with prefix: $namePrefix")
-            for (i in 1..MAX_WALLPAPERS_PER_CATEGORY) {
-                val resourceName = "$namePrefix$i"
-                val resourceId = resources.getIdentifier(resourceName, "drawable", packageName)
-                if (resourceId != 0) {
-                    dynamicImageList.add(resourceId)
-                    Log.d(TAG, "doWork: Found wallpaper - Name: $resourceName, ID: $resourceId")
-                } else {
-                     Log.v(TAG, "doWork: No wallpaper found for name: $resourceName (this might be expected if not all numbers up to MAX are used)")
-                }
+            // CHANGED: Get the habit directly from the repository
+            val habitKey = settingsRepository.getSettings().first().selectedHabit
+            if (habitKey.isNullOrEmpty()) {
+                Log.e(TAG, "Failed - Habit key is missing from settings!")
+                return Result.failure() // Stop work if no habit is set
             }
 
-            if (dynamicImageList.isEmpty()) {
-                Log.e(TAG, "doWork: Failed - No wallpapers found for category: $habitCategory with prefix: $namePrefix")
+            Log.d(TAG, "Found habit key: $habitKey")
+
+            // CHANGED: Use the habit key to get the image list from the map
+            val imageList = Constants.HABIT_TO_IMAGE_MAP[habitKey]
+            if (imageList.isNullOrEmpty()) {
+                Log.e(TAG, "Failed - No wallpapers found for habit key: $habitKey")
                 return Result.failure()
             }
 
-            val wallpaperResourceId = dynamicImageList.random()
-            Log.i(TAG, "doWork: Selected wallpaper ID: $wallpaperResourceId for category: $habitCategory")
+            val wallpaperResourceId = imageList.random()
+            Log.i(TAG, "Selected wallpaper ID: $wallpaperResourceId for habit: $habitKey")
 
             val wallpaperManager = WallpaperManager.getInstance(applicationContext)
-            val bitmap: Bitmap? = BitmapFactory.decodeResource(resources, wallpaperResourceId)
+            val bitmap = BitmapFactory.decodeResource(applicationContext.resources, wallpaperResourceId)
 
             if (bitmap == null) {
-                Log.e(TAG, "doWork: Failed - Could not decode bitmap for resource ID: $wallpaperResourceId")
+                Log.e(TAG, "Failed - Could not decode bitmap for resource ID: $wallpaperResourceId")
                 return Result.failure()
             }
 
-            try {
-                wallpaperManager.setBitmap(bitmap)
-                Log.i(TAG, "doWork: Success - Wallpaper changed (ID: $wallpaperResourceId)")
-                Result.success()
-            } catch (e: IOException) {
-                Log.e(TAG, "doWork: Failed - IOException while setting wallpaper (ID: $wallpaperResourceId)", e)
-                Result.failure()
-            }
+            wallpaperManager.setBitmap(bitmap)
+            Log.i(TAG, "Success - Wallpaper changed for habit $habitKey (ID: $wallpaperResourceId)")
+            Result.success()
 
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed - IOException while setting wallpaper", e)
+            Result.failure()
         } catch (e: Exception) {
-            Log.e(TAG, "doWork: Failed - Unexpected error for category: $habitCategory", e)
+            Log.e(TAG, "Failed - Unexpected error in WallpaperWorker", e)
             Result.failure()
         }
     }

@@ -30,12 +30,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.motiv8me.R
-import com.example.motiv8me.util.Constants
 import com.example.motiv8me.ui.components.FrequencySelector
 import com.example.motiv8me.ui.components.HabitSelector
 import com.example.motiv8me.ui.theme.Motiv8MeTheme
 import com.google.accompanist.pager.HorizontalPagerIndicator
-import kotlinx.coroutines.launch
 
 @Composable
 fun OnboardingScreen(
@@ -46,14 +44,12 @@ fun OnboardingScreen(
     val pagerState = rememberPagerState(pageCount = { uiState.totalPages })
     val coroutineScope = rememberCoroutineScope()
 
-    // Sync pager state from ViewModel
     LaunchedEffect(uiState.currentPage) {
         if (pagerState.currentPage != uiState.currentPage) {
             pagerState.animateScrollToPage(uiState.currentPage)
         }
     }
 
-    // Sync ViewModel from pager state
     LaunchedEffect(pagerState.currentPage) {
         if (uiState.currentPage != pagerState.currentPage) {
             viewModel.setCurrentPage(pagerState.currentPage)
@@ -119,9 +115,9 @@ fun OnboardingBottomBar(
         Spacer(Modifier.weight(1f))
         if (uiState.currentPage < uiState.totalPages - 1) {
             val isNextEnabled = when (uiState.currentPage) {
-                1 -> uiState.selectedHabit != null
-                2 -> uiState.selectedWallpaperFrequency != null
-                3 -> uiState.selectedNotificationFrequencyMillis != null
+                1 -> uiState.selectedHabitKey != null
+                2 -> uiState.selectedWallpaperFrequencyMinutes != null
+                3 -> uiState.selectedNotificationFrequencyMinutes != null
                 else -> true
             }
             Button(onClick = onNext, enabled = isNextEnabled) {
@@ -179,8 +175,9 @@ fun WelcomeStep() {
 fun HabitStep(uiState: OnboardingUiState, onHabitSelected: (String) -> Unit) {
     StepCard(title = stringResource(id = R.string.onboarding_step_habit_title)) {
         HabitSelector(
+            // CORRECTED: Pass the correct parameters to the updated component
             availableHabits = uiState.availableHabits,
-            selectedHabit = uiState.selectedHabit,
+            selectedHabitKey = uiState.selectedHabitKey,
             onHabitSelected = onHabitSelected,
             placeholder = stringResource(id = R.string.onboarding_select_habit_button)
         )
@@ -192,7 +189,7 @@ fun WallpaperFrequencyStep(uiState: OnboardingUiState, onFrequencySelected: (Lon
     StepCard(title = stringResource(id = R.string.onboarding_step_wallpaper_frequency_title)) {
         FrequencySelector(
             availableFrequencies = uiState.availableFrequencies.toMap(),
-            selectedFrequencyMillis = uiState.selectedWallpaperFrequency,
+            selectedFrequencyMillis = uiState.selectedWallpaperFrequencyMinutes,
             onFrequencySelected = onFrequencySelected,
             placeholder = stringResource(id = R.string.onboarding_select_frequency_button)
         )
@@ -203,8 +200,8 @@ fun WallpaperFrequencyStep(uiState: OnboardingUiState, onFrequencySelected: (Lon
 fun NotificationFrequencyStep(uiState: OnboardingUiState, onFrequencySelected: (Long) -> Unit) {
     StepCard(title = stringResource(id = R.string.onboarding_step_notification_frequency_title)) {
         FrequencySelector(
-            availableFrequencies = Constants.NOTIFICATION_FREQUENCY_OPTIONS.associateBy { it.first }.mapValues { it.value.second },
-            selectedFrequencyMillis = uiState.selectedNotificationFrequencyMillis,
+            availableFrequencies = uiState.availableFrequencies.toMap(),
+            selectedFrequencyMillis = uiState.selectedNotificationFrequencyMinutes,
             onFrequencySelected = onFrequencySelected,
             placeholder = stringResource(id = R.string.onboarding_select_notification_frequency_button)
         )

@@ -7,128 +7,90 @@ import android.os.Build
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.motiv8me.R
 import com.example.motiv8me.domain.repository.SettingsRepository
+import com.example.motiv8me.domain.usecase.ScheduleNotificationWorkerUseCase
+import com.example.motiv8me.domain.usecase.ScheduleWallpaperWorkerUseCase
 import com.example.motiv8me.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import com.example.motiv8me.service.NotificationWorker
-import com.example.motiv8me.service.WallpaperWorker
 
 data class OnboardingUiState(
-    // Page state
     val currentPage: Int = 0,
-    val totalPages: Int = 5, // Welcome, Habit, Wallpaper Freq, Notif Freq, Permissions
-
-    // Selections
-    val selectedHabit: String? = null,
-    val selectedWallpaperFrequency: Long? = null,
-    val selectedNotificationFrequencyMillis: Long? = null,
-    val availableHabits: List<String> = emptyList(),
+    val totalPages: Int = 5,
+    val selectedHabitKey: String? = null,
+    val selectedWallpaperFrequencyMinutes: Long? = null,
+    val selectedNotificationFrequencyMinutes: Long? = null,
+    val availableHabits: List<Pair<String, String>> = emptyList(), // Display Name, Key
     val availableFrequencies: List<Pair<String, Long>> = emptyList(),
-
-    // Permissions
     val isWallpaperPermissionGranted: Boolean = false,
-    val isNotificationPermissionGranted: Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) false else true,
+    val isNotificationPermissionGranted: Boolean = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) true else false,
     val isLoading: Boolean = false
 ) {
     val canCompleteOnboarding: Boolean
-        get() = selectedHabit != null &&
-                selectedWallpaperFrequency != null &&
-                selectedNotificationFrequencyMillis != null &&
+        get() = selectedHabitKey != null &&
+                selectedWallpaperFrequencyMinutes != null &&
+                selectedNotificationFrequencyMinutes != null &&
                 isWallpaperPermissionGranted &&
-                (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) isNotificationPermissionGranted else true)
+                isNotificationPermissionGranted
 }
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
-    @ApplicationContext private val applicationContext: Context
+    @ApplicationContext private val applicationContext: Context,
+    private val scheduleWallpaperWorkerUseCase: ScheduleWallpaperWorkerUseCase,
+    private val scheduleNotificationWorkerUseCase: ScheduleNotificationWorkerUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
 
     init {
-        loadInitialData()
-    }
-
-    private fun loadInitialData() {
         _uiState.update {
             it.copy(
-                availableHabits = Constants.PREDEFINED_HABITS,
+                availableHabits = Constants.HABIT_OPTIONS,
                 availableFrequencies = Constants.SHARED_APP_FREQUENCIES
             )
         }
     }
 
-    fun onHabitSelected(habit: String) {
-        _uiState.update { it.copy(selectedHabit = habit) }
+    fun onHabitSelected(habitKey: String) {
+        _uiState.update { it.copy(selectedHabitKey = habitKey) }
     }
 
-    fun onWallpaperFrequencySelected(frequencyMillis: Long) {
-        _uiState.update { it.copy(selectedWallpaperFrequency = frequencyMillis) }
+    fun onWallpaperFrequencySelected(frequencyMinutes: Long) {
+        _uiState.update { it.copy(selectedWallpaperFrequencyMinutes = frequencyMinutes) }
     }
 
-    fun onNotificationFrequencySelected(frequencyMillis: Long) {
-        _uiState.update { it.copy(selectedNotificationFrequencyMillis = frequencyMillis) }
+    fun onNotificationFrequencySelected(frequencyMinutes: Long) {
+        _uiState.update { it.copy(selectedNotificationFrequencyMinutes = frequencyMinutes) }
     }
 
     fun onNotificationPermissionResult(isGranted: Boolean) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            _uiState.update { it.copy(isNotificationPermissionGranted = isGranted) }
-        }
+        _uiState.update { it.copy(isNotificationPermissionGranted = isGranted) }
     }
 
     fun setInitialWallpaper() {
         viewModelScope.launch {
-            val habit = _uiState.value.selectedHabit
-            if (habit == null) {
+            val habitKey = _uiState.value.selectedHabitKey
+            if (habitKey == null) {
                 Log.e("OnboardingViewModel", "Cannot set wallpaper, habit not selected.")
-                // Optionally update UI to inform user they need to select a habit first
-                // _uiState.update { it.copy(wallpaperSettingError = "Please select a habit first.") }
                 return@launch
             }
-            Log.d("OnboardingViewModel", "Attempting to set wallpaper for habit: $habit")
-
             try {
-                val imageList = Constants.HABIT_TO_IMAGE_MAP[habit] ?: run {
-                    Log.e("OnboardingViewModel", "No wallpaper list defined for habit: $habit")
-                    emptyList()
-                }
-
-                if (imageList.isNotEmpty()) {
+                val imageList = Constants.HABIT_TO_IMAGE_MAP[habitKey]
+                if (!imageList.isNullOrEmpty()) {
                     val wallpaperResourceId = imageList.random()
-                    Log.d("OnboardingViewModel", "Selected wallpaper resource ID: $wallpaperResourceId")
-
                     val bitmap = BitmapFactory.decodeResource(applicationContext.resources, wallpaperResourceId)
-                    if (bitmap == null) {
-                        Log.e("OnboardingViewModel", "Failed to decode bitmap for resource ID: $wallpaperResourceId")
-                        // Optionally update UI with error
-                        // _uiState.update { it.copy(wallpaperSettingError = "Error loading wallpaper image.") }
-                        return@launch
-                    }
-                    Log.d("OnboardingViewModel", "Bitmap decoded successfully.")
-
                     WallpaperManager.getInstance(applicationContext).setBitmap(bitmap)
-                    Log.i("OnboardingViewModel", "Wallpaper successfully set for habit: $habit")
-
-                    // Update the state to reflect that the wallpaper has been set.
                     _uiState.update { it.copy(isWallpaperPermissionGranted = true) }
-                } else {
-                    Log.e("OnboardingViewModel", "No wallpapers found for habit: $habit after when block.")
-                    // Optionally update UI with error
-                    // _uiState.update { it.copy(wallpaperSettingError = "No wallpapers for selected habit.") }
+                    Log.i("OnboardingViewModel", "Initial wallpaper set for $habitKey")
                 }
             } catch (e: Exception) {
-                Log.e("OnboardingViewModel", "Failed to set initial wallpaper due to an exception.", e)
-                // Optionally update UI with error
-                // _uiState.update { it.copy(isWallpaperPermissionGranted = false, wallpaperSettingError = "Could not set wallpaper.") }
+                Log.e("OnboardingViewModel", "Failed to set initial wallpaper", e)
             }
         }
     }
@@ -155,13 +117,14 @@ class OnboardingViewModel @Inject constructor(
         val currentState = _uiState.value
         if (currentState.canCompleteOnboarding) {
             viewModelScope.launch {
-                settingsRepository.saveHabitSetting(currentState.selectedHabit!!)
-                settingsRepository.saveWallpaperFrequency(currentState.selectedWallpaperFrequency!!)
-                settingsRepository.saveNotificationFrequency(currentState.selectedNotificationFrequencyMillis!!)
+                settingsRepository.saveHabitSetting(currentState.selectedHabitKey!!)
+                settingsRepository.saveWallpaperFrequency(currentState.selectedWallpaperFrequencyMinutes!!)
+                settingsRepository.saveNotificationFrequency(currentState.selectedNotificationFrequencyMinutes!!)
                 settingsRepository.saveOnboardingComplete(true)
-                // Enqueue the workers to start their work based on the saved settings
-                WorkManager.getInstance(applicationContext).enqueue(OneTimeWorkRequestBuilder<WallpaperWorker>().build())
-                WorkManager.getInstance(applicationContext).enqueue(OneTimeWorkRequestBuilder<NotificationWorker>().build())
+
+                // CORRECTLY schedule the periodic workers using the use cases
+                scheduleWallpaperWorkerUseCase()
+                scheduleNotificationWorkerUseCase()
             }
         }
     }

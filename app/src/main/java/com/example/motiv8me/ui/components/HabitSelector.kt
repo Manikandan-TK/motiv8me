@@ -1,48 +1,51 @@
 package com.example.motiv8me.ui.components
 
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-// Required imports for the preview and component
-import androidx.compose.foundation.layout.fillMaxWidth
 import com.example.motiv8me.ui.theme.Motiv8MeTheme
-import androidx.compose.material3.MenuAnchorType
 
 /**
  * A dropdown menu composable for selecting a predefined habit.
  *
- * @param availableHabits The list of habit names (Strings) to display in the dropdown.
- * @param selectedHabit The currently selected habit name, or null if none is selected.
- * @param onHabitSelected Callback invoked when a habit is selected from the dropdown.
+ * @param availableHabits The list of habit pairs (Display Name, Key) to show.
+ * @param selectedHabitKey The key of the currently selected habit, or null.
+ * @param onHabitSelected Callback invoked with the selected habit's key.
  * @param modifier Optional Modifier for this composable.
  * @param placeholder Text to display when no habit is selected.
  */
-@OptIn(ExperimentalMaterial3Api::class) // For ExposedDropdownMenuBox
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HabitSelector(
-    availableHabits: List<String>,
-    selectedHabit: String?,
+    availableHabits: List<Pair<String, String>>,
+    selectedHabitKey: String?,
     onHabitSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "Select Habit" // Can be overridden or use stringResource
+    placeholder: String = "Select Habit"
 ) {
     var expanded by remember { mutableStateOf(false) }
+
+    // Find the display name for the currently selected key
+    val selectedDisplayName = remember(selectedHabitKey, availableHabits) {
+        availableHabits.find { it.second == selectedHabitKey }?.first
+    }
 
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded },
         modifier = modifier
     ) {
-        OutlinedTextField( // Using OutlinedTextField for better visual distinction
-            value = selectedHabit ?: placeholder,
-            onValueChange = {}, // No-op for read-only
+        OutlinedTextField(
+            value = selectedDisplayName ?: placeholder,
+            onValueChange = {},
             readOnly = true,
-            label = { Text("Habit") }, // Optional label
+            label = { Text("Habit") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
             modifier = Modifier
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable) // Important: Anchor the dropdown menu to this text field
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                 .fillMaxWidth()
         )
 
@@ -50,11 +53,11 @@ fun HabitSelector(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            availableHabits.forEach { habit ->
+            availableHabits.forEach { (displayName, key) ->
                 DropdownMenuItem(
-                    text = { Text(habit) },
+                    text = { Text(displayName) },
                     onClick = {
-                        onHabitSelected(habit)
+                        onHabitSelected(key) // Return the key
                         expanded = false
                     }
                 )
@@ -63,31 +66,20 @@ fun HabitSelector(
     }
 }
 
-// --- Preview ---
-@Preview(showBackground = true, widthDp = 300)
-@Composable
-private fun HabitSelectorPreview() {
-    var selected by remember { mutableStateOf<String?>(null) }
-    val habits = listOf("Stop Smoking", "Eat Healthier", "Exercise More", "Reduce Screen Time")
-    Motiv8MeTheme {
-        HabitSelector(
-            availableHabits = habits,
-            selectedHabit = selected,
-            onHabitSelected = { selected = it }
-        )
-    }
-}
 
 @Preview(showBackground = true, widthDp = 300)
 @Composable
-private fun HabitSelectorSelectedPreview() {
-    var selected by remember { mutableStateOf<String?>("Eat Healthier") }
-    val habits = listOf("Stop Smoking", "Eat Healthier", "Exercise More", "Reduce Screen Time")
+private fun HabitSelectorPreview() {
+    var selectedKey by remember { mutableStateOf<String?>(null) }
+    val habits = listOf(
+        Pair("Stop Smoking", "stop_smoking"),
+        Pair("Eat Healthier", "eat_healthier")
+    )
     Motiv8MeTheme {
         HabitSelector(
             availableHabits = habits,
-            selectedHabit = selected,
-            onHabitSelected = { selected = it }
+            selectedHabitKey = selectedKey,
+            onHabitSelected = { selectedKey = it }
         )
     }
 }

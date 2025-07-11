@@ -14,37 +14,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.motiv8me.R // For string resources if needed
-import com.example.motiv8me.model.Constants
+import com.example.motiv8me.R
 import com.example.motiv8me.ui.navigation.ThemeToggleActions
 import com.example.motiv8me.ui.theme.Motiv8MeTheme
+import com.example.motiv8me.util.Constants // CORRECTED: Import from util
 
 /**
  * Composable screen for selecting a predefined habit from a list.
  *
- * @param onHabitSelected Callback invoked with the selected habit name (String) when a habit is chosen.
- * @param onNavigateBack Callback invoked when the user triggers back navigation (e.g., taps the back arrow).
+ * @param onHabitSelected Callback invoked with the selected habit's key (String).
+ * @param onNavigateBack Callback invoked when the user triggers back navigation.
  */
-@OptIn(ExperimentalMaterial3Api::class) // For TopAppBar
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HabitSelectionScreen(
-    onHabitSelected: (habit: String) -> Unit,
+    onHabitSelected: (habitKey: String) -> Unit,
     onNavigateBack: () -> Unit
-    // Optional: Inject ViewModel if state becomes more complex
-    // viewModel: HabitSelectionViewModel = hiltViewModel()
 ) {
-    // Retrieve the predefined habits directly from Constants
-    val habits = Constants.PREDEFINED_HABITS
+    // CORRECTED: Retrieve the list of pairs (DisplayName, Key) from Constants
+    val habits = Constants.HABIT_OPTIONS
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Select Habit") }, // TODO: Use stringResource
+                title = { Text("Select Habit") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.cd_navigate_back) // TODO: Add content description string
+                            contentDescription = stringResource(R.string.cd_navigate_back)
                         )
                     }
                 },
@@ -55,21 +53,18 @@ fun HabitSelectionScreen(
         }
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier.padding(paddingValues), // Apply padding from Scaffold
-            contentPadding = PaddingValues(vertical = 8.dp) // Add some padding around the list items
+            modifier = Modifier.padding(paddingValues),
+            contentPadding = PaddingValues(vertical = 8.dp)
         ) {
-            items(items = habits, key = { it }) { habit ->
+            // CORRECTED: Iterate over the list of pairs, using the key for stability
+            items(items = habits, key = { it.second }) { (displayName, habitKey) ->
                 HabitListItem(
-                    habitName = habit,
+                    habitName = displayName, // Show the display name
                     onClick = {
-                        val habitKey = Constants.HABIT_CATEGORIES[habit] ?: habit
-                        onHabitSelected(habitKey)
-                        // Optionally navigate back immediately after selection,
-                        // or let the calling screen handle it based on the callback.
-                        // onNavigateBack() // Uncomment if immediate back navigation is desired
+                        onHabitSelected(habitKey) // Pass the key back on click
                     }
                 )
-                HorizontalDivider(thickness = 0.5.dp) // Add a thin divider between items
+                HorizontalDivider(thickness = 0.5.dp)
             }
         }
     }
@@ -77,9 +72,6 @@ fun HabitSelectionScreen(
 
 /**
  * Composable representing a single item in the habit selection list.
- *
- * @param habitName The name of the habit to display.
- * @param onClick Lambda function to be invoked when the item is clicked.
  */
 @Composable
 private fun HabitListItem(
@@ -92,24 +84,18 @@ private fun HabitListItem(
         style = MaterialTheme.typography.bodyLarge,
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick) // Make the whole row clickable
-            .padding(horizontal = 16.dp, vertical = 16.dp) // Add padding within the item
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
     )
 }
 
-// --- Preview ---
 @Preview(showBackground = true)
 @Composable
 private fun HabitSelectionScreenPreview() {
     Motiv8MeTheme {
         HabitSelectionScreen(
-            onHabitSelected = { println("Selected: $it") }, // Simulate selection
-            onNavigateBack = { println("Navigate Back") } // Simulate back navigation
+            onHabitSelected = { },
+            onNavigateBack = { }
         )
     }
 }
-
-// TODO: Add string resource for content description
-// In res/values/strings.xml:
-// <string name="cd_navigate_back">Navigate back</string>
-// <string name="habit_selection_title">Select Habit</string> // Optional title string

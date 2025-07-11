@@ -1,11 +1,9 @@
 package com.example.motiv8me.ui.features.notification_settings
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -53,13 +51,14 @@ fun NotificationSettingsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(16.dp)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 NotificationToggleRow(
                     enabled = uiState.notificationsEnabled,
                     onToggle = viewModel::onToggleNotifications
                 )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+                HorizontalDivider()
 
                 AnimatedVisibility(visible = uiState.notificationsEnabled) {
                     FrequencySelector(
@@ -101,7 +100,8 @@ private fun FrequencySelector(
     onFrequencySelected: (Long) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val selectedLabel = availableFrequencies.firstOrNull { it.second == selectedFrequency }?.first 
+    // CORRECTED: Find the label based on the selected frequency value (in minutes)
+    val selectedLabel = availableFrequencies.firstOrNull { it.second == selectedFrequency }?.first
         ?: stringResource(R.string.notif_settings_frequency_label)
 
     Column {
@@ -110,7 +110,7 @@ private fun FrequencySelector(
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        
+
         ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
             OutlinedTextField(
                 value = selectedLabel,
@@ -128,7 +128,7 @@ private fun FrequencySelector(
                     DropdownMenuItem(
                         text = { Text(label) },
                         onClick = {
-                            onFrequencySelected(value)
+                            onFrequencySelected(value) // Pass back the value (minutes)
                             expanded = false
                         }
                     )

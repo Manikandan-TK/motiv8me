@@ -4,9 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.motiv8me.domain.repository.SettingsRepository
 import com.example.motiv8me.domain.usecase.ScheduleNotificationWorkerUseCase
-import com.example.motiv8me.util.Constants.NOTIFICATION_FREQUENCY_OFF
-import com.example.motiv8me.util.Constants.NOTIFICATION_FREQUENCY_OPTIONS
-import com.example.motiv8me.util.Constants.SHARED_APP_FREQUENCIES
+import com.example.motiv8me.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -19,7 +17,7 @@ data class NotificationSettingsUiState(
     val isLoading: Boolean = true,
     val notificationsEnabled: Boolean = true,
     val selectedFrequencyValue: Long? = null,
-    val availableFrequencies: List<Pair<String, Long>> = SHARED_APP_FREQUENCIES
+    val availableFrequencies: List<Pair<String, Long>> = Constants.SHARED_APP_FREQUENCIES
 )
 
 /**
@@ -42,13 +40,14 @@ class NotificationSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.getSettings()
                 .onStart { _uiState.update { it.copy(isLoading = true) } }
-                .catch { e -> _uiState.update { it.copy(isLoading = false) } }
+                .catch { _ -> _uiState.update { it.copy(isLoading = false) } }
                 .collect { settings ->
-                    val frequency = settings.notificationFrequencyMillis
+                    // CORRECTED: Use the correct field name from AppSettings
+                    val frequency = settings.notificationFrequencyMinutes
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            notificationsEnabled = frequency != NOTIFICATION_FREQUENCY_OFF,
+                            notificationsEnabled = frequency != Constants.NOTIFICATION_FREQUENCY_OFF,
                             selectedFrequencyValue = frequency
                         )
                     }
@@ -56,25 +55,25 @@ class NotificationSettingsViewModel @Inject constructor(
         }
     }
 
-    fun onFrequencySelected(newFrequencyMillis: Long) {
-        _uiState.update { it.copy(selectedFrequencyValue = newFrequencyMillis, notificationsEnabled = true) }
+    fun onFrequencySelected(newFrequencyMinutes: Long) {
+        _uiState.update { it.copy(selectedFrequencyValue = newFrequencyMinutes, notificationsEnabled = true) }
         viewModelScope.launch {
-            settingsRepository.saveNotificationFrequency(newFrequencyMillis)
+            settingsRepository.saveNotificationFrequency(newFrequencyMinutes)
             scheduleNotificationWorkerUseCase()
         }
     }
 
     fun onToggleNotifications(enabled: Boolean) {
-        val newFrequency = if (enabled) {
-            // Restore the last known frequency or default to the first option in the list
-            _uiState.value.selectedFrequencyValue.takeIf { it != NOTIFICATION_FREQUENCY_OFF } 
-                ?: NOTIFICATION_FREQUENCY_OPTIONS.first().second
-        } else {
-            NOTIFICATION_FREQUENCY_OFF
-        }
-        _uiState.update { it.copy(notificationsEnabled = enabled, selectedFrequencyValue = newFrequency) }
-
         viewModelScope.launch {
+            val newFrequency = if (enabled) {
+                // CORRECTED: Restore the last known frequency or default to the first option from the correct constant
+                uiState.value.selectedFrequencyValue.takeIf { it != Constants.NOTIFICATION_FREQUENCY_OFF }
+                    ?: Constants.SHARED_APP_FREQUENCIES.first().second
+            } else {
+                Constants.NOTIFICATION_FREQUENCY_OFF
+            }
+            _uiState.update { it.copy(notificationsEnabled = enabled, selectedFrequencyValue = newFrequency) }
+
             settingsRepository.saveNotificationFrequency(newFrequency)
             scheduleNotificationWorkerUseCase()
         }

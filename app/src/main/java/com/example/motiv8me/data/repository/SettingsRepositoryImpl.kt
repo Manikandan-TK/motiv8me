@@ -14,130 +14,69 @@ import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private object PreferencesKeys {
-    val THEME_PREFERENCE = Constants.PREF_KEY_THEME_PREFERENCE
-}
-
-/**
- * Implementation of the SettingsRepository using Jetpack Preferences DataStore.
- * Handles reading and writing application settings.
- *
- * Marked as Singleton to ensure only one instance interacts with the DataStore.
- *
- * @param dataStore The DataStore<Preferences> instance provided by Hilt.
- */
 @Singleton
 class SettingsRepositoryImpl @Inject constructor(
-    private val dataStore: DataStore<Preferences> // Injected via Hilt (Module needed)
+    private val dataStore: DataStore<Preferences>
 ) : SettingsRepository {
 
-    /**
-     * Retrieves all application settings as a Flow from DataStore.
-     * Maps the raw Preferences object to the AppSettings data class.
-     * Includes error handling for initial reads or corrupted data.
-     */
     override fun getSettings(): Flow<AppSettings> {
         return dataStore.data
             .catch { exception ->
-                // Handle errors reading DataStore (e.g., file corruption)
                 if (exception is IOException) {
-                    // Log the error or inform the user
-                    emit(emptyPreferences()) // Emit empty preferences to recover
+                    emit(emptyPreferences())
                 } else {
-                    throw exception // Rethrow other exceptions
+                    throw exception
                 }
             }
             .map { preferences ->
                 // Read each setting using keys from Constants, providing defaults
                 val onboardingComplete = preferences[Constants.PREF_KEY_ONBOARDING_COMPLETE] ?: false
-                val selectedHabit = preferences[Constants.PREF_KEY_SELECTED_HABIT] // Nullable by default
-                val wallpaperFrequency = preferences[Constants.PREF_KEY_WALLPAPER_FREQUENCY] // Nullable by default
-                val notificationFrequency = preferences[Constants.PREF_KEY_NOTIFICATION_FREQUENCY] // Nullable by default
+                val selectedHabit = preferences[Constants.PREF_KEY_SELECTED_HABIT]
+                val wallpaperFrequency = preferences[Constants.PREF_KEY_WALLPAPER_FREQUENCY_MINUTES]
+                val notificationFrequency = preferences[Constants.PREF_KEY_NOTIFICATION_FREQUENCY_MINUTES]
 
                 AppSettings(
                     isOnboardingComplete = onboardingComplete,
                     selectedHabit = selectedHabit,
-                    wallpaperFrequencyMillis = wallpaperFrequency,
-                    notificationFrequencyMillis = notificationFrequency
+                    wallpaperFrequencyMinutes = wallpaperFrequency,
+                    notificationFrequencyMinutes = notificationFrequency
                 )
             }
     }
 
+    override suspend fun saveHabitSetting(habitKey: String) {
+        dataStore.edit { preferences ->
+            preferences[Constants.PREF_KEY_SELECTED_HABIT] = habitKey
+        }
+    }
+
+    override suspend fun saveWallpaperFrequency(frequencyMinutes: Long) {
+        dataStore.edit { preferences ->
+            preferences[Constants.PREF_KEY_WALLPAPER_FREQUENCY_MINUTES] = frequencyMinutes
+        }
+    }
+
+    override suspend fun saveNotificationFrequency(frequencyMinutes: Long) {
+        dataStore.edit { preferences ->
+            preferences[Constants.PREF_KEY_NOTIFICATION_FREQUENCY_MINUTES] = frequencyMinutes
+        }
+    }
+
+    override suspend fun saveOnboardingComplete(isComplete: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[Constants.PREF_KEY_ONBOARDING_COMPLETE] = isComplete
+        }
+    }
+
+    // --- Theme preference remains unchanged ---
     override val themePreference: Flow<String> = dataStore.data
         .map { preferences ->
             preferences[Constants.PREF_KEY_THEME_PREFERENCE] ?: "System"
         }
 
-    /**
-     * Saves the selected habit identifier to DataStore.
-     */
-    override suspend fun saveHabitSetting(habit: String) {
-        try {
-            dataStore.edit { preferences ->
-                preferences[Constants.PREF_KEY_SELECTED_HABIT] = habit
-            }
-        } catch (e: Exception) {
-            // Defensive: log and rethrow for ViewModel to handle
-            // Log.e("SettingsRepositoryImpl", "Error saving habit setting", e)
-            throw e
-        }
-    }
-
-    /**
-     * Saves the selected wallpaper frequency (in milliseconds) to DataStore.
-     */
-    override suspend fun saveWallpaperFrequency(frequencyMillis: Long) {
-        try {
-            dataStore.edit { preferences ->
-                preferences[Constants.PREF_KEY_WALLPAPER_FREQUENCY] = frequencyMillis
-            }
-        } catch (e: Exception) {
-            // Defensive: log and rethrow for ViewModel to handle
-            // Log.e("SettingsRepositoryImpl", "Error saving wallpaper frequency", e)
-            throw e
-        }
-    }
-
-    /**
-     * Saves the selected notification frequency (in milliseconds) to DataStore.
-     * 0L indicates notifications are off.
-     */
-    override suspend fun saveNotificationFrequency(frequencyMillis: Long) {
-        try {
-            dataStore.edit { preferences ->
-                preferences[Constants.PREF_KEY_NOTIFICATION_FREQUENCY] = frequencyMillis
-            }
-        } catch (e: Exception) {
-            // Defensive: log and rethrow for ViewModel to handle
-            // Log.e("SettingsRepositoryImpl", "Error saving notification frequency", e)
-            throw e
-        }
-    }
-
-    /**
-     * Saves the onboarding completion status to DataStore.
-     */
-    override suspend fun saveOnboardingComplete(isComplete: Boolean) {
-        try {
-            dataStore.edit { preferences ->
-                preferences[Constants.PREF_KEY_ONBOARDING_COMPLETE] = isComplete
-            }
-        } catch (e: Exception) {
-            // Defensive: log and rethrow for ViewModel to handle
-            // Log.e("SettingsRepositoryImpl", "Error saving onboarding complete", e)
-            throw e
-        }
-    }
-
     override suspend fun saveThemePreference(theme: String) {
-        try {
-            dataStore.edit { preferences ->
-                preferences[Constants.PREF_KEY_THEME_PREFERENCE] = theme
-            }
-        } catch (e: Exception) {
-            // Defensive: log and rethrow for ViewModel to handle
-            // Log.e("SettingsRepositoryImpl", "Error saving theme preference", e)
-            throw e
+        dataStore.edit { preferences ->
+            preferences[Constants.PREF_KEY_THEME_PREFERENCE] = theme
         }
     }
 }

@@ -7,12 +7,19 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.motiv8me.R
+import com.example.motiv8me.util.Constants
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 
-class NotificationWorker(appContext: Context, workerParams: WorkerParameters) :
-    CoroutineWorker(appContext, workerParams) {
+@HiltWorker
+class NotificationWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters
+) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
         const val TAG = "NotificationWorker"
@@ -21,46 +28,30 @@ class NotificationWorker(appContext: Context, workerParams: WorkerParameters) :
     override suspend fun doWork(): Result {
         Log.d(TAG, "Notification worker has started.")
 
+        // Permission check is crucial before proceeding
+        if (ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            Log.w(TAG, "POST_NOTIFICATIONS permission not granted. Aborting work.")
+            // This is not a failure of the work itself, but a state of the system.
+            // Returning success prevents it from retrying unnecessarily.
+            return Result.success()
+        }
+
         return try {
-            // For this test, we'll use a simple list of quotes.
-            val quotes = listOf(
-                "The only way to do great work is to love what you do.",
-                "Believe you can and you're halfway there.",
-                "The future belongs to those who believe in the beauty of their dreams.",
-                "Success is not final, failure is not fatal: it is the courage to continue that counts."
-            )
+            val randomQuote = Constants.MOTIVATIONAL_QUOTES.random()
+            val notificationId = Constants.NOTIFICATION_ID
 
-            // Pick a random quote from our list.
-            val randomQuote = quotes.random()
-
-            // A unique ID for this specific notification. If you post another
-            // notification with the same ID, it will update the existing one.
-            val notificationId = 1
-
-            // Build the notification using the channel we created earlier.
-            val builder = NotificationCompat.Builder(applicationContext, "MOTIVATION_CHANNEL_ID")
-                .setSmallIcon(R.drawable.ic_launcher_foreground) // IMPORTANT: Use your app's icon
+            val builder = NotificationCompat.Builder(applicationContext, Constants.NOTIFICATION_CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_notification_placeholder) // A proper monochrome icon is best
                 .setContentTitle("Your Daily Motivation!")
                 .setContentText(randomQuote)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(randomQuote)) // Allows for longer text
+                .setStyle(NotificationCompat.BigTextStyle().bigText(randomQuote))
 
-            // Show the notification.
-            if (ContextCompat.checkSelfPermission(
-                    applicationContext,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                with(NotificationManagerCompat.from(applicationContext)) {
-                    // The POST_NOTIFICATIONS permission is checked by the system automatically here.
-                    // If the user denied it, this line will do nothing, and no crash will occur.
-                    notify(notificationId, builder.build())
-                }
-                Log.d(TAG, "Notification sent successfully!")
-            } else {
-                Log.w(TAG, "POST_NOTIFICATIONS permission not granted. Notification not sent.")
-                // Optionally, you could return Result.failure() here if the notification is critical
+            with(NotificationManagerCompat.from(applicationContext)) {
+                notify(notificationId, builder.build())
             }
+
+            Log.d(TAG, "Notification sent successfully!")
             Result.success()
 
         } catch (e: Exception) {
